@@ -12,7 +12,7 @@ LD = $(AVR_PREFIX)ld
 SIZE = $(AVR_PREFIX)size
 
 LIBS = 
-DEFS = -DNDEBUG -D__AVR_ATtiny25__ 
+DEFS = -DNDEBUG -D__AVR_ATtiny2313__ 
 
 # Directories
 INCLUDE_DIR = include
@@ -21,8 +21,8 @@ SRC_DIR = src
 BIN_DIR = bin
 
 #device and program
-PRG = chrono_buttons
-MMCU = -mmcu=attiny25
+PRG = chronometer_buttons
+MMCU = -mmcu=attiny2313
 OPTIMIZE = -Os
 
 INCLUDES = -Iinclude -I$(AVR_TOOLCHAIN_PATH)/avr/include
@@ -74,8 +74,8 @@ mrproper:
 	@rm -rf $(BIN_DIR)
 
 program:
-	@avrdude -c usbasp -p t25 -U flash:w:$(BIN_DIR)/$(PRG).hex
+	@avrdude -c usbasp -p t2313 -U flash:w:$(BIN_DIR)/$(PRG).hex
 
 fuse_program:
-	@avrdude -c usbasp -p t25 -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
+	@avrdude -c usbasp -p t2313 -U lfuse:w:0xef:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m 
 

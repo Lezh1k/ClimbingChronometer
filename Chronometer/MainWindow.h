@@ -23,15 +23,18 @@ public:
 private:
   Ui::MainWindow *ui;
   CChronometerController* m_chronometer_controller;
-  QTimer* m_refresh_timer;
-  QSerialPort* m_serial_port;
+  QTimer* m_refresh_timer;  
   QStandardItemModel* m_model_ports;
 
 private slots:
   void btn_start_stop_released();
   void refresh_timer_timeout();
   void cb_serial_ports_index_changed(int ix);
-  void serial_port_ready_read();
+  void chronometer_controller_state_changed(bool running);
+
+  void btn_fall1_released();
+  void btn_fall2_released();
+
 };
 
 #endif // MAINWINDOW_H

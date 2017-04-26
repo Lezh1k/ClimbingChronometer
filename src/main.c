@@ -33,7 +33,7 @@ static inline void wait_for_transmitter() {
   while ( !(UCSRA & (1 << UDRE)) ) ;
 }
 
-static inline void send_tx(uint8_t val) {
+static void send_tx(uint8_t val) {
   wait_for_transmitter();
   UDR = val;
 }
@@ -80,16 +80,16 @@ main(void) {
         btn0_pressed = btn1_pressed = 0;
         btn0_led_turn_off();
         btn1_led_turn_off();
-        rx_buffer = tx_buffer = 0;
+        rx_buffer = tx_buffer = 0x00;
         break;
       case BCMD_INIT:
         tx_buffer = BCMD_INIT_ACK;
         send_tx(tx_buffer);
-        tx_buffer = 0x00;
+        rx_buffer = tx_buffer = 0x00;
         break;
       default:
         break;
     }
-  }
+  } //while 1
 }
 //////////////////////////////////////////////////////////////

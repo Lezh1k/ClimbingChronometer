@@ -58,8 +58,12 @@ MainWindow::~MainWindow() {
 
 void
 MainWindow::btn_start_stop_released() {
+  QString start_str;
   if (!m_chronometer_controller->is_running()) {
-    m_chronometer_controller->start();    
+    if (!m_chronometer_controller->start(start_str)) {
+      ui->lbl_error->setVisible(true);
+      ui->lbl_error->setText(start_str);
+    }
   } else {
     m_chronometer_controller->stop_all();    
   }

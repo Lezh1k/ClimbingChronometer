@@ -28,13 +28,16 @@ CChronometerController::~CChronometerController() {
 //////////////////////////////////////////////////////////////
 
 bool
-CChronometerController::start() {
+CChronometerController::start(QString& err) {
   static uint8_t restart_cmd[1] = {BCMD_RESTART};
 
-  m_serial_port->write((char*)restart_cmd, 1);
-  m_serial_port->flush();
-  //todo return false if error occured :)
+  qint64 written = m_serial_port->write((char*)restart_cmd, 1);
+  bool flushed = m_serial_port->flush();
 
+  if (written != 1 || !flushed) {
+    err = m_serial_port->errorString();
+    return false;
+  }
   m_time0_ms = m_time1_ms = m_current_ms = 0;
   m_is_running = true;
   m_time0_stopped = m_time1_stopped = false;

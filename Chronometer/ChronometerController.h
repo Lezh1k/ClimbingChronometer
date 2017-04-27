@@ -34,7 +34,7 @@ public:
   CChronometerController(QObject* parent = nullptr);
   virtual ~CChronometerController();
 
-  bool start();
+  bool start(QString &err);
   void stop_all();
 
   void fall0();

@@ -23,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
   m_chronometer_controller = new CChronometerController;
   m_refresh_timer = new QTimer(this);
   m_refresh_timer->setInterval(10);
-  ui->lbl_error->setVisible(false);
+  ui->lbl_error->setVisible(true);
 
   m_model_ports = new QStandardItemModel;
   QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
@@ -41,10 +41,8 @@ MainWindow::MainWindow(QWidget *parent) :
           this, SLOT(cb_serial_ports_index_changed(int)));
   connect(m_chronometer_controller, SIGNAL(state_changed(bool)),
           this, SLOT(chronometer_controller_state_changed(bool)));
-  connect(ui->btn_fall1, SIGNAL(released()),
-          this, SLOT(btn_fall1_released()));
-  connect(ui->btn_fall2, SIGNAL(released()),
-          this, SLOT(btn_fall2_released()));
+  connect(ui->btn_fall1, SIGNAL(released()), this, SLOT(btn_fall0_released()));
+  connect(ui->btn_fall2, SIGNAL(released()), this, SLOT(btn_fall1_released()));
 
   if (QSerialPortInfo::availablePorts().size() > 0)
     cb_serial_ports_index_changed(0);
@@ -91,10 +89,9 @@ MainWindow::cb_serial_ports_index_changed(int ix) {
   ui->lbl_error->setVisible(false);
   QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
   if (lst_ports.size() > ix) {
-    if (!m_chronometer_controller->set_serial_port(lst_ports.at(ix), err)) {
-      ui->lbl_error->setVisible(true);
-      ui->lbl_error->setText(err);
-    }
+    m_chronometer_controller->set_serial_port(lst_ports.at(ix), err);
+    ui->lbl_error->setVisible(true);
+    ui->lbl_error->setText(err);
   } else {
     m_model_ports->clear();
     QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
@@ -111,22 +108,26 @@ MainWindow::chronometer_controller_state_changed(bool running) {
   if (running) {
     m_refresh_timer->start();
     ui->btn_start_stop->setText("Стоп");
+    ui->cb_serial_ports->setEnabled(false);
+    ui->lbl_error->setEnabled(false);
   } else {
     m_refresh_timer->stop();
     ui->btn_start_stop->setText("Старт");
+    ui->cb_serial_ports->setEnabled(true);
+    ui->lbl_error->setEnabled(true);
   }
 }
 //////////////////////////////////////////////////////////////
 
 void
-MainWindow::btn_fall1_released() {
+MainWindow::btn_fall0_released() {
   m_chronometer_controller->fall0();
   refresh_timer_timeout();
 }
 //////////////////////////////////////////////////////////////
 
 void
-MainWindow::btn_fall2_released() {
+MainWindow::btn_fall1_released() {
   m_chronometer_controller->fall1();
   refresh_timer_timeout();
 }

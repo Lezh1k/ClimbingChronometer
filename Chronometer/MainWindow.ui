@@ -6,24 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>570</width>
-    <height>230</height>
+    <width>750</width>
+    <height>442</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Megachronometer</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
-      <x>9</x>
-      <y>9</y>
-      <width>241</width>
-      <height>101</height>
+      <x>10</x>
+      <y>30</y>
+      <width>221</width>
+      <height>81</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout">
+    <layout class="QGridLayout" name="gl_serial_port">
      <item row="0" column="0">
       <widget class="QComboBox" name="cb_serial_ports"/>
      </item>
@@ -39,23 +39,16 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>11</y>
-      <width>291</width>
-      <height>101</height>
+      <x>240</x>
+      <y>10</y>
+      <width>371</width>
+      <height>121</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="3" column="0" colspan="2">
-      <widget class="QPushButton" name="btn_start_stop">
-       <property name="text">
-        <string>Старт</string>
-       </property>
-      </widget>
-     </item>
+    <layout class="QGridLayout" name="gl_chronometer">
      <item row="0" column="0">
       <widget class="QLabel" name="lbl_time1">
        <property name="sizePolicy">
@@ -82,8 +75,8 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="le_time2">
+     <item row="1" column="0">
+      <widget class="QLineEdit" name="le_time1">
        <property name="alignment">
         <set>Qt::AlignCenter</set>
        </property>
@@ -92,8 +85,8 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="0">
-      <widget class="QLineEdit" name="le_time1">
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="le_time2">
        <property name="alignment">
         <set>Qt::AlignCenter</set>
        </property>
@@ -116,6 +109,13 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="0" colspan="2">
+      <widget class="QPushButton" name="btn_start_stop">
+       <property name="text">
+        <string>Старт</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -124,7 +124,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>570</width>
+     <width>750</width>
      <height>19</height>
     </rect>
    </property>

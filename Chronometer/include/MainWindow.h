@@ -32,8 +32,8 @@ private slots:
   void cb_serial_ports_index_changed(int ix);
   void chronometer_controller_state_changed(bool running);
 
+  void btn_fall0_released();
   void btn_fall1_released();
-  void btn_fall2_released();
 
 };
 

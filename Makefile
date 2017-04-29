@@ -77,5 +77,5 @@ program:
 	@avrdude -c usbasp -p t2313 -U flash:w:$(BIN_DIR)/$(PRG).hex
 
 fuse_program:
-	@avrdude -c usbasp -p t2313 -U lfuse:w:0xef:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m 
+	@avrdude -c usbasp -p t2313 -U lfuse:w:0xe4:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m 
 

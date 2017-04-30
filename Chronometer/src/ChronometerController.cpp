@@ -19,7 +19,7 @@ CChronometerController::CChronometerController(QObject *parent) :
 
   m_timer = new QTimer(this);
   m_timer->setInterval(10);
-  connect(m_timer, SIGNAL(timeout()), this, SLOT(ms_timer_timeout()));
+  connect(m_timer, &QTimer::timeout, this, &CChronometerController::ms_timer_timeout);
 }
 
 CChronometerController::~CChronometerController() {
@@ -159,7 +159,8 @@ CChronometerController::set_serial_port(const QSerialPortInfo &port_info,
     return false;
   }
 
-  connect(m_serial_port, SIGNAL(readyRead()), this, SLOT(serial_port_ready_read()));
+  connect(m_serial_port, &QSerialPort::readyRead,
+          this, &CChronometerController::serial_port_ready_read);
   err = "Succesfully initialized";
   return true;
 }

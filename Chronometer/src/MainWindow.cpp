@@ -11,6 +11,8 @@
 #include <QStandardItemModel>
 #include <QByteArray>
 #include <QLineEdit>
+#include <QPushButton>
+#include <QComboBox>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -33,16 +35,18 @@ MainWindow::MainWindow(QWidget *parent) :
   }
   ui->cb_serial_ports->setModel(m_model_ports);
 
-  connect(m_refresh_timer, SIGNAL(timeout()),
-          this, SLOT(refresh_timer_timeout()));
-  connect(ui->btn_start_stop, SIGNAL(released()),
-          this, SLOT(btn_start_stop_released()));
-  connect(ui->cb_serial_ports, SIGNAL(currentIndexChanged(int)),
-          this, SLOT(cb_serial_ports_index_changed(int)));
-  connect(m_chronometer_controller, SIGNAL(state_changed(bool)),
-          this, SLOT(chronometer_controller_state_changed(bool)));
-  connect(ui->btn_fall1, SIGNAL(released()), this, SLOT(btn_fall0_released()));
-  connect(ui->btn_fall2, SIGNAL(released()), this, SLOT(btn_fall1_released()));
+  connect(m_refresh_timer, &QTimer::timeout,
+          this, &MainWindow::refresh_timer_timeout);
+  connect(ui->btn_start_stop, &QPushButton::released,
+          this, &MainWindow::btn_start_stop_released);
+  connect(ui->cb_serial_ports, (void(QComboBox::*)(int)) &QComboBox::currentIndexChanged,
+          this, &MainWindow::cb_serial_ports_index_changed);
+  connect(m_chronometer_controller, &CChronometerController::state_changed,
+          this, &MainWindow::chronometer_controller_state_changed);
+  connect(ui->btn_fall1, &QPushButton::released,
+          this, &MainWindow::btn_fall0_released);
+  connect(ui->btn_fall2, &QPushButton::released,
+          this, &MainWindow::btn_fall1_released);
 
   if (QSerialPortInfo::availablePorts().size() > 0)
     cb_serial_ports_index_changed(0);

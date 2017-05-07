@@ -8,9 +8,11 @@ typedef enum btn_commands {
 } btn_commands_t;
 
 typedef enum btn_consts{
-  BC_ORDER_COEFF = 3,
-  BC_BTN0 = 4,
-  BC_BTN1 = 6
+  BC_BTN_COUNT = 5,
+  BC_BTN0 = 3,
+  BC_BTN1 = 7,
+  BC_BTN2 = 11,
+  BC_BTN3 = 13,
 } btn_consts_t;
 
 #endif

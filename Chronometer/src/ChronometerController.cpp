@@ -98,24 +98,46 @@ CChronometerController::stop_time1() {
 
 void
 CChronometerController::handle_rx(uint8_t rx) {
-//  switch (rx) {
-//    case ( BC_BTN0 << (BC_BTN_COUNT-1) ):
-//      stop_time0();
-//      break;
-//    case ( (BC_BTN0 << (BC_BTN_COUNT-1)) + (BC_BTN1 << (BC_BTN_COUNT-2)) ):
-//      stop_time0();
-//      stop_time1();
-//      break;
-//    case ( BC_BTN1 << (BC_BTN_COUNT-1) ):
-//      stop_time1();
-//      break;
-//    case ( (BC_BTN1 << (BC_BTN_COUNT-1)) + (BC_BTN0 << (BC_BTN_COUNT-2)) ):
-//      stop_time1();
-//      stop_time0();
-//      break;
-//    default:
-//      break;
-//  }
+  uint8_t plt01_state = (rx >> 3) & 0x07;
+  uint8_t btn01_state = rx & 0x07;
+
+  switch (btn01_state) {
+    case ( BC_BTN0 << 1 ) :
+      stop_time0();
+      break;
+    case ( BC_BTN0 << 1 | BC_BTN1 ) :
+      stop_time0();
+      stop_time1();
+      break;
+    case ( BC_BTN1 << 1 ) :
+      stop_time1();
+      break;
+    case ( BC_BTN1 << 1 | BC_BTN0 ) :
+      stop_time1();
+      stop_time0();
+      break;
+    default:
+      //todo notify somehow
+      break;
+  } //switch btn01_state
+
+  switch (plt01_state) {
+    case ( BC_PLATFORM0 << 1 ) :
+      //platform0 first
+      break;
+    case ( BC_PLATFORM0 << 1 | BC_PLATFORM1 ) :
+      //platform0 then platform1
+      break;
+    case ( BC_PLATFORM1 << 1 ) :
+      //platform1 first
+      break;
+    case ( BC_PLATFORM1 << 1 | BC_PLATFORM0 ) :
+      //platform1 then platform0
+      break;
+    default:
+      //todo notify somehow
+      break;
+  }
 }
 //////////////////////////////////////////////////////////////
 

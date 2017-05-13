@@ -48,7 +48,8 @@ static inline void disable_usart_rx_int() { UCSRB &= ~(1 << RXCIE); }
 
 static inline void wait_for_transmitter() { while ( !(UCSRA & (1 << UDRE)) ) ; }
 
-volatile uint8_t rx_buffer = 0;
+//volatile uint8_t rx_buffer = 0;
+register uint8_t rx_buffer asm("r4");
 
 ISR(USART_RX_vect) {
   rx_buffer = UDR;
@@ -64,13 +65,14 @@ static void send_tx(uint8_t val) {
 int
 main(void) {
   register uint8_t btn01_coeff = 2;
-  register uint8_t btn23_coeff = 2;
+  register uint8_t plt01_coeff = 2;
   register uint8_t tx_buffer = 0; //contains just info about which key was pressed first
 
   register uint8_t btn0_pressed = 0;
   register uint8_t btn1_pressed = 0;
   register uint8_t plt0_pressed = 0;
   register uint8_t plt1_pressed = 0;
+  rx_buffer = 0;
 
   DDRD = (1 << PD1) | PIN_BTN0 | PIN_BTN1 | PIN_PLATFORM0 | PIN_PLATFORM1;
   DDRB = PORT_LED0 | PORT_LED1 | PORT_LED2 | PORT_LED3;
@@ -86,6 +88,28 @@ main(void) {
   sei();
 
   while(1) {
+    switch (rx_buffer) {
+      case BCMD_RESTART:
+        btn01_coeff = plt01_coeff = 2;
+        btn0_pressed = btn1_pressed =
+            plt0_pressed = plt1_pressed = 0x00;
+        led0_turn_off();
+        led1_turn_off();
+        led2_turn_off();
+        led3_turn_off();
+        rx_buffer = tx_buffer = 0x00;
+        break;
+      case BCMD_INIT:
+        send_tx(BCMD_INIT_ACK);
+        break;
+      case BCMD_START_COUNTDOWN:
+        //todo handle
+        send_tx(BCMD_START_COUNTDOWN_ACK);
+        break;
+      default:
+        break;
+    } //switch
+
     if ( !btn0_pressed && btn0_is_down() ) {
       btn0_pressed = 1;
       tx_buffer |= (BC_BTN0 << --btn01_coeff);
@@ -100,42 +124,19 @@ main(void) {
       led1_turn_on();
     }
 
-    //todo make something else :)
     if ( !plt0_pressed && plt0_is_down() ) {
       plt0_pressed = 1;
-      tx_buffer |= (BC_PLATFORM0 << --btn23_coeff);
+      tx_buffer |= (BC_PLATFORM0 << --plt01_coeff);
       send_tx(tx_buffer);
       led2_turn_on();
     }
 
     if ( !plt1_pressed && plt1_is_down() ) {
       plt1_pressed = 3;
-      tx_buffer |= (BC_PLATFORM1 << --btn23_coeff);
+      tx_buffer |= (BC_PLATFORM1 << --plt01_coeff);
       send_tx(tx_buffer);
       led3_turn_on();
     }
-
-    switch (rx_buffer) {
-      case BCMD_RESTART:
-        btn01_coeff = btn23_coeff = 2;
-        btn0_pressed = btn1_pressed =
-            plt0_pressed = plt1_pressed = 0x00;
-        led0_turn_off();
-        led1_turn_off();
-        led2_turn_off();
-        led3_turn_off();
-        rx_buffer = tx_buffer = 0x00;
-        break;
-      case BCMD_INIT:        
-        send_tx(BCMD_INIT_ACK);        
-        break;
-      case BCMD_START_COUNTDOWN:
-        //todo handle
-        send_tx(BCMD_START_COUNTDOWN_ACK);
-        break;
-      default:
-        break;
-    }
   } //while 1
-}
+} //main
 //////////////////////////////////////////////////////////////

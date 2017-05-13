@@ -98,24 +98,24 @@ CChronometerController::stop_time1() {
 
 void
 CChronometerController::handle_rx(uint8_t rx) {
-  switch (rx) {
-    case ( BC_BTN0 << (BC_ORDER_COEFF-1) ):
-      stop_time0();
-      break;
-    case ( (BC_BTN0 << (BC_ORDER_COEFF-1)) + (BC_BTN1 << (BC_ORDER_COEFF-2)) ):
-      stop_time0();
-      stop_time1();
-      break;
-    case ( BC_BTN1 << (BC_ORDER_COEFF-1) ):
-      stop_time1();
-      break;
-    case ( (BC_BTN1 << (BC_ORDER_COEFF-1)) + (BC_BTN0 << (BC_ORDER_COEFF-2)) ):
-      stop_time1();
-      stop_time0();
-      break;
-    default:
-      break;
-  }
+//  switch (rx) {
+//    case ( BC_BTN0 << (BC_BTN_COUNT-1) ):
+//      stop_time0();
+//      break;
+//    case ( (BC_BTN0 << (BC_BTN_COUNT-1)) + (BC_BTN1 << (BC_BTN_COUNT-2)) ):
+//      stop_time0();
+//      stop_time1();
+//      break;
+//    case ( BC_BTN1 << (BC_BTN_COUNT-1) ):
+//      stop_time1();
+//      break;
+//    case ( (BC_BTN1 << (BC_BTN_COUNT-1)) + (BC_BTN0 << (BC_BTN_COUNT-2)) ):
+//      stop_time1();
+//      stop_time0();
+//      break;
+//    default:
+//      break;
+//  }
 }
 //////////////////////////////////////////////////////////////
 

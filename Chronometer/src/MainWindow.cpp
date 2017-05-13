@@ -72,7 +72,6 @@ MainWindow::~MainWindow() {
 }
 //////////////////////////////////////////////////////////////
 
-
 static const QString beep1 = "beep1.wav";
 static const QString beep2 = "beep2.wav";
 
@@ -81,6 +80,8 @@ MainWindow::play_start_sound() {
 
   QString dp = QApplication::applicationDirPath();
   QDir dir(dp + QDir::separator() + "resources");
+  ui->btn_start_stop->setEnabled(false);
+
   if (!dir.exists()) {
     ui->lbl_error->setText("resources directory doesn't exist");
     return;
@@ -96,7 +97,7 @@ MainWindow::play_start_sound() {
   }
 
   m_signals_count = 3;
-  m_start_timer->start();
+  m_start_timer->start(0);
 }
 //////////////////////////////////////////////////////////////
 
@@ -181,18 +182,22 @@ MainWindow::start_timer_timeout() {
   QString dp = QApplication::applicationDirPath();
   QDir dir(dp + QDir::separator() + "resources");
   --m_signals_count;
+  m_start_timer->stop();
+
   if (m_signals_count > 0) {
+    m_start_timer->setInterval(1000);
     m_start_player->setMedia(QUrl::fromLocalFile(dir.path() + QDir::separator() + beep1));
     m_start_player->play();
+    m_start_timer->start();
   } else {
     QString start_str;
     if (!m_chronometer_controller->start(start_str)) {
       ui->lbl_error->setVisible(true);
       ui->lbl_error->setText(start_str);
-    }
-    m_start_timer->stop();
+    }    
     m_start_player->setMedia(QUrl::fromLocalFile(dir.path() + QDir::separator() + beep2));
     m_start_player->play();
+    ui->btn_start_stop->setEnabled(true);
   }
 }
 //////////////////////////////////////////////////////////////

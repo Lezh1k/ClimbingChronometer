@@ -15,10 +15,11 @@
 #define BAUD_RATE   9600UL
 #define UBRR_VAL    (F_CPU / (16 * BAUD_RATE) - 1)
 
-#define PIN_BTN0 (1 << PIND2)
-#define PIN_BTN1 (1 << PIND3)
-#define PIN_BTN2 (1 << PIND4)
-#define PIN_BTN3 (1 << PIND5)
+#define PIN_BTN0      (1 << PIND2)
+#define PIN_BTN1      (1 << PIND3)
+#define PIN_PLATFORM0 (1 << PIND4)
+#define PIN_PLATFORM1 (1 << PIND5)
+#define PIN_BTN_START (1 << PIND6)
 
 #define PORT_LED0 (1 << PB0)
 #define PORT_LED1 (1 << PB1)
@@ -39,8 +40,8 @@ static inline void led3_turn_off() { PORTB &= ~PORT_LED0 ;}
 
 static inline uint8_t btn0_is_down() { return !(PIND & PIN_BTN0); }
 static inline uint8_t btn1_is_down() { return !(PIND & PIN_BTN1); }
-static inline uint8_t btn2_is_down() { return !(PIND & PIN_BTN2); }
-static inline uint8_t btn3_is_down() { return !(PIND & PIN_BTN3); }
+static inline uint8_t plt0_is_down() { return !(PIND & PIN_PLATFORM0); }
+static inline uint8_t plt1_is_down() { return !(PIND & PIN_PLATFORM1); }
 
 static inline void enable_usart_rx_int() { UCSRB |= (1 << RXCIE); }
 static inline void disable_usart_rx_int() { UCSRB &= ~(1 << RXCIE); }
@@ -62,20 +63,20 @@ static void send_tx(uint8_t val) {
 
 int
 main(void) {
-  register uint8_t tx_current_coeff = BC_BTN_COUNT;
+  register uint8_t btn01_coeff = 2;
+  register uint8_t btn23_coeff = 2;
   register uint8_t tx_buffer = 0; //contains just info about which key was pressed first
 
   register uint8_t btn0_pressed = 0;
   register uint8_t btn1_pressed = 0;
-  register uint8_t btn2_pressed = 0;
-  register uint8_t btn3_pressed = 0;
+  register uint8_t plt0_pressed = 0;
+  register uint8_t plt1_pressed = 0;
 
-  DDRD = (1 << PD1);  
+  DDRD = (1 << PD1) | PIN_BTN0 | PIN_BTN1 | PIN_PLATFORM0 | PIN_PLATFORM1;
   DDRB = PORT_LED0 | PORT_LED1 | PORT_LED2 | PORT_LED3;
 
   MCUCR = (1 << ISC11) | (1 << ISC01); //interrupt int0 on falling edge. interrupt int1 on falling edge.
   GIMSK = 0;
-
   UCSRC = (1 << UCSZ0) | (1 << UCSZ1); //8bit, 1stop, async
   UBRRH = (uint8_t) (UBRR_VAL >> 8);
   UBRRL = (uint8_t) UBRR_VAL;
@@ -87,43 +88,50 @@ main(void) {
   while(1) {
     if ( !btn0_pressed && btn0_is_down() ) {
       btn0_pressed = 1;
-      tx_buffer += (BC_BTN0 << (--tx_current_coeff));
+      tx_buffer |= (BC_BTN0 << --btn01_coeff);
       send_tx(tx_buffer);
       led0_turn_on();
     }
 
     if ( !btn1_pressed && btn1_is_down() ) {
       btn1_pressed = 1;
-      tx_buffer += (BC_BTN1 << (--tx_current_coeff));
+      tx_buffer |= (BC_BTN1 << --btn01_coeff);
       send_tx(tx_buffer);
       led1_turn_on();
     }
 
-    if ( !btn2_pressed && btn2_is_down() ) {
-      btn2_pressed = 1;
-      tx_buffer += (BC_BTN2 << (--tx_current_coeff));
+    //todo make something else :)
+    if ( !plt0_pressed && plt0_is_down() ) {
+      plt0_pressed = 1;
+      tx_buffer |= (BC_PLATFORM0 << --btn23_coeff);
       send_tx(tx_buffer);
       led2_turn_on();
     }
 
-    if ( !btn3_pressed && btn3_is_down() ) {
-      btn3_pressed = 3;
-      tx_buffer += (BC_BTN3 << (--tx_current_coeff));
+    if ( !plt1_pressed && plt1_is_down() ) {
+      plt1_pressed = 3;
+      tx_buffer |= (BC_PLATFORM1 << --btn23_coeff);
       send_tx(tx_buffer);
       led3_turn_on();
     }
 
     switch (rx_buffer) {
       case BCMD_RESTART:
-        tx_current_coeff = BC_BTN_COUNT;
-        btn0_pressed = btn1_pressed = btn2_pressed = btn3_pressed = 0;
-        led0_turn_off(); led1_turn_off();
-        led2_turn_off(); led3_turn_off();
+        btn01_coeff = btn23_coeff = 2;
+        btn0_pressed = btn1_pressed =
+            plt0_pressed = plt1_pressed = 0x00;
+        led0_turn_off();
+        led1_turn_off();
+        led2_turn_off();
+        led3_turn_off();
         rx_buffer = tx_buffer = 0x00;
         break;
       case BCMD_INIT:        
-        send_tx(BCMD_INIT_ACK);
-        rx_buffer = tx_buffer = 0x00;
+        send_tx(BCMD_INIT_ACK);        
+        break;
+      case BCMD_START_COUNTDOWN:
+        //todo handle
+        send_tx(BCMD_START_COUNTDOWN_ACK);
         break;
       default:
         break;

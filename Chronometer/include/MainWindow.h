@@ -13,23 +13,42 @@ class QSerialPort;
 class QStandardItemModel;
 class QMediaPlayer;
 
+class CStartSoundPlayer : public QObject {
+  Q_OBJECT
+private:
+  QTimer* m_timer;
+  QMediaPlayer* m_start_player;
+  int8_t m_signals_count;
+public:
+  CStartSoundPlayer(QObject* parent = nullptr);
+  virtual ~CStartSoundPlayer();
+
+  void abort();
+
+private slots:
+  void timer_timeout();
+public slots:
+  void play();
+
+signals:
+  void start_signal();
+  void finished();
+};
+//////////////////////////////////////////////////////////////
+
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
 
 public:
   explicit MainWindow(QWidget *parent = 0);
-  ~MainWindow();
+  virtual ~MainWindow();
 
 private:
   Ui::MainWindow *ui;
   CChronometerController* m_chronometer_controller;
-  QTimer* m_refresh_timer;  
-  QTimer* m_start_timer;
+  QTimer* m_refresh_timer;
   QStandardItemModel* m_model_ports;
-
-  QMediaPlayer* m_start_player;
-  int8_t m_signals_count;
 
   void play_start_sound();
 
@@ -40,9 +59,7 @@ private slots:
   void chronometer_controller_state_changed(bool running);
 
   void btn_fall0_released();
-  void btn_fall1_released();
-
-  void start_timer_timeout();
+  void btn_fall1_released();  
 };
 
 #endif // MAINWINDOW_H

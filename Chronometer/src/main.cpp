@@ -20,20 +20,20 @@ tx_from_buttons( int8_t* buttons_in_down_state) {
 
 int
 main(int argc, char *argv[]) {
-  int8_t arr0[] = {0, -1, -1, -1};
-  int8_t arr1[] = {-1, 0, -1, -1};
-  int8_t arr2[] = {0, 1, -1, -1};
-  int8_t arr3[] = {1, 0, -1, -1};
+//  int8_t arr0[] = {0, -1, -1, -1};
+//  int8_t arr1[] = {-1, 0, -1, -1};
+//  int8_t arr2[] = {0, 1, -1, -1};
+//  int8_t arr3[] = {1, 0, -1, -1};
 
-  int8_t arr4[] = {-1, -1, 0, -1};
-  int8_t arr5[] = {-1, -1, -1, 0};
-  int8_t arr6[] = {0, 1, 0, 1};
-  int8_t arr7[] = {1, 0, 1, 0};
+//  int8_t arr4[] = {-1, -1, 0, -1};
+//  int8_t arr5[] = {-1, -1, -1, 0};
+//  int8_t arr6[] = {0, 1, 0, 1};
+//  int8_t arr7[] = {1, 0, 1, 0};
 
-  int8_t* arr[] = {arr0, arr1, arr2, arr3, arr4, arr5, arr6, arr7, NULL};
-  for (int i = 0; arr[i]; ++i) {
-    qDebug() << tx_from_buttons(arr[i]) << " " << QString("%1").arg(tx_from_buttons(arr[i]), 8, 2);
-  }
+//  int8_t* arr[] = {arr0, arr1, arr2, arr3, arr4, arr5, arr6, arr7, NULL};
+//  for (int i = 0; arr[i]; ++i) {
+//    qDebug() << tx_from_buttons(arr[i]) << " " << QString("%1").arg(tx_from_buttons(arr[i]), 8, 2);
+//  }
 
   QApplication a(argc, argv);
   MainWindow w;

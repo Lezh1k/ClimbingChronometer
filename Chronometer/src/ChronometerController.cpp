@@ -3,8 +3,13 @@
 #include <QTimer>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
+#include <QDir>
+#include <QApplication>
+#include <QThread>
+#include <QMediaPlayer>
 
 #include "commands_consts.h"
+
 
 CChronometerController::CChronometerController(QObject *parent) :
   QObject(parent),
@@ -27,24 +32,9 @@ CChronometerController::~CChronometerController() {
 }
 //////////////////////////////////////////////////////////////
 
-bool
-CChronometerController::start(QString& err) {
-  static uint8_t restart_cmd[1] = {BCMD_RESTART};
-
-  qint64 written = m_serial_port->write((char*)restart_cmd, 1);
-  bool flushed = m_serial_port->flush();
-
-  if (written != 1 || !flushed) {
-    err = m_serial_port->errorString();
-    return false;
-  }
-  m_time0_ms = m_time1_ms = m_current_ms = 0;
-  m_is_running = true;
-  m_time0_stopped = m_time1_stopped = false;
-  m_time_start = std::chrono::high_resolution_clock::now();
-  m_timer->start();
-  emit state_changed(true);
-  return true;
+void
+CChronometerController::start() {
+  play_start_sound();
 }
 //////////////////////////////////////////////////////////////
 
@@ -56,7 +46,7 @@ CChronometerController::stop_all() {
   m_time_stop = std::chrono::high_resolution_clock::now();
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
-  emit state_changed(false);
+  emit state_changed((int)CC_STOPPED);
 }
 //////////////////////////////////////////////////////////////
 
@@ -101,6 +91,11 @@ CChronometerController::handle_rx(uint8_t rx) {
   uint8_t plt01_state = (rx >> 3) & 0x07;
   uint8_t btn01_state = rx & 0x07;
 
+  if (rx == BC_BTN_START) {
+    if (!m_is_running)
+      start();
+  }
+
   switch (btn01_state) {
     case ( BC_BTN0 << 1 ) :
       stop_time0();
@@ -115,7 +110,7 @@ CChronometerController::handle_rx(uint8_t rx) {
     case ( BC_BTN1 << 1 | BC_BTN0 ) :
       stop_time1();
       stop_time0();
-      break;
+      break;      
     default:
       //todo notify somehow
       break;
@@ -138,6 +133,27 @@ CChronometerController::handle_rx(uint8_t rx) {
       //todo notify somehow
       break;
   }
+}
+//////////////////////////////////////////////////////////////
+
+void
+CChronometerController::start_timer() {
+  static uint8_t restart_cmd[1] = {BCMD_RESTART};
+  qint64 written = m_serial_port->write((char*)restart_cmd, 1);
+  bool flushed = m_serial_port->flush();
+
+  if (written != 1 || !flushed) {
+    emit error_happened(m_serial_port->errorString());
+    emit state_changed((int)CC_STOPPED);
+    return;
+  }
+
+  m_time0_ms = m_time1_ms = m_current_ms = 0;
+  m_is_running = true;
+  m_time0_stopped = m_time1_stopped = false;
+  m_time_start = std::chrono::high_resolution_clock::now();
+  m_timer->start();
+  emit state_changed((int)CC_RUNNING);
 }
 //////////////////////////////////////////////////////////////
 
@@ -203,5 +219,107 @@ CChronometerController::serial_port_ready_read() {
   QByteArray arr = m_serial_port->readAll();
   if (arr.isEmpty()) return;
   handle_rx((uint8_t)arr.at(0));
+}
+//////////////////////////////////////////////////////////////
+
+static const QString beep1 = "beep1.wav";
+static const QString beep2 = "beep2.wav";
+
+void
+CChronometerController::play_start_sound() {
+  QString dp = QApplication::applicationDirPath();
+  QDir dir(dp + QDir::separator() + "resources");
+  if (!dir.exists()) {
+    emit error_happened("resources directory doesn't exist");
+    emit state_changed((int)CC_STOPPED);
+    return;
+  }
+
+  QString files[2] = {beep1, beep2};
+  for (int i = 0; i < 2; ++i) {
+    QFile f(dir.path() + QDir::separator() + files[i]);
+    if (!f.exists()) {
+      emit error_happened(QString("%1 doesn't exist").arg(files[i]));
+      emit state_changed((int)CC_STOPPED);
+      return;
+    }
+  }
+
+  CStartSoundPlayer* player = new CStartSoundPlayer;
+  QThread* th = new QThread;
+
+  connect(th, &QThread::started, player, &CStartSoundPlayer::play);
+  connect(player, &CStartSoundPlayer::finished, th, &QThread::quit);
+
+  connect(player, &CStartSoundPlayer::start_signal, [this](){
+    start_timer();
+  });
+
+  connect(th, &QThread::finished, player, &CStartSoundPlayer::deleteLater);
+  connect(th, &QThread::finished, th, &QThread::deleteLater);
+
+  player->moveToThread(th);
+  th->start();
+  emit state_changed((int)CC_PLAYING_SOUND);
+}
+//////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+CStartSoundPlayer::CStartSoundPlayer(QObject *parent) :
+  QObject(parent),
+  m_timer(nullptr),
+  m_start_player(nullptr) ,
+  m_signals_count(3) {
+  m_timer = new QTimer(this);
+  m_timer->setInterval(1000);
+  m_start_player = new QMediaPlayer;
+  connect(m_timer, &QTimer::timeout, this, &CStartSoundPlayer::timer_timeout);
+}
+
+CStartSoundPlayer::~CStartSoundPlayer() {
+  if (m_timer) delete m_timer;
+  if (m_start_player) delete m_start_player;
+}
+//////////////////////////////////////////////////////////////
+
+void CStartSoundPlayer::abort() {
+  m_timer->stop();
+  m_start_player->stop();
+  emit finished();
+}
+//////////////////////////////////////////////////////////////
+
+void
+CStartSoundPlayer::timer_timeout() {
+  QString dp = QApplication::applicationDirPath();
+  QDir dir(dp + QDir::separator() + "resources");
+  --m_signals_count;
+  m_timer->stop();
+  if (m_signals_count > 0) {
+    m_timer->setInterval(1000);
+    m_start_player->setMedia(QUrl::fromLocalFile(dir.path() + QDir::separator() + beep1));
+    m_start_player->play();
+    m_timer->start();
+  } else {
+    emit start_signal();
+    m_start_player->setMedia(QUrl::fromLocalFile(dir.path() + QDir::separator() + beep2));
+
+    connect(m_start_player, &QMediaPlayer::stateChanged,
+            [this](QMediaPlayer::State newState) {
+      if (newState == QMediaPlayer::StoppedState) {
+        emit finished();
+      }
+    });
+    m_start_player->play();
+  }
+}
+//////////////////////////////////////////////////////////////
+
+void
+CStartSoundPlayer::play() {
+  m_timer->start(0);
 }
 //////////////////////////////////////////////////////////////

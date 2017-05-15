@@ -45,12 +45,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(m_refresh_timer, &QTimer::timeout,
           this, &MainWindow::refresh_timer_timeout);
+
   connect(ui->btn_start_stop, &QPushButton::released,
           this, &MainWindow::btn_start_stop_released);
+
   connect(ui->cb_serial_ports, (void(QComboBox::*)(int)) &QComboBox::currentIndexChanged,
           this, &MainWindow::cb_serial_ports_index_changed);
+
   connect(m_chronometer_controller, &CChronometerController::state_changed,
           this, &MainWindow::chronometer_controller_state_changed);
+  connect(m_chronometer_controller, &CChronometerController::error_happened,
+          this, &MainWindow::chronometer_controller_error_happened);
+
   connect(ui->btn_fall1, &QPushButton::released,
           this, &MainWindow::btn_fall0_released);
   connect(ui->btn_fall2, &QPushButton::released,
@@ -67,58 +73,10 @@ MainWindow::~MainWindow() {
 }
 //////////////////////////////////////////////////////////////
 
-static const QString beep1 = "beep1.wav";
-static const QString beep2 = "beep2.wav";
-
-void
-MainWindow::play_start_sound() {
-
-  QString dp = QApplication::applicationDirPath();
-  QDir dir(dp + QDir::separator() + "resources");
-  ui->btn_start_stop->setEnabled(false);
-
-  if (!dir.exists()) {
-    ui->lbl_error->setText("resources directory doesn't exist");
-    return;
-  }
-
-  QString files[2] = {beep1, beep2};
-  for (int i = 0; i < 2; ++i) {
-    QFile f(dir.path() + QDir::separator() + files[i]);
-    if (!f.exists()) {
-      ui->lbl_error->setText(QString("%1 doesn't exist").arg(files[i]));
-      return;
-    }
-  }
-
-  CStartSoundPlayer* player = new CStartSoundPlayer;
-  QThread* th = new QThread;
-
-  connect(th, &QThread::started, player, &CStartSoundPlayer::play);
-  connect(player, &CStartSoundPlayer::finished, th, &QThread::quit);
-
-  connect(player, &CStartSoundPlayer::start_signal, [this](){
-    QString err;
-    if (!m_chronometer_controller->start(err)) {
-      ui->lbl_error->setVisible(true);
-      ui->lbl_error->setText(err);
-    }
-    ui->btn_start_stop->setEnabled(true);
-  });
-
-  connect(th, &QThread::finished, player, &CStartSoundPlayer::deleteLater);
-  connect(th, &QThread::finished, th, &QThread::deleteLater);
-
-  player->moveToThread(th);
-  th->start();
-}
-//////////////////////////////////////////////////////////////
-
 void
 MainWindow::btn_start_stop_released() {
-
   if (!m_chronometer_controller->is_running()) {
-    play_start_sound();
+    m_chronometer_controller->start();
   } else {
     m_chronometer_controller->stop_all();    
   }
@@ -161,18 +119,35 @@ MainWindow::cb_serial_ports_index_changed(int ix) {
 //////////////////////////////////////////////////////////////
 
 void
-MainWindow::chronometer_controller_state_changed(bool running) {
-  if (running) {
-    m_refresh_timer->start();
-    ui->btn_start_stop->setText("Стоп");
-    ui->cb_serial_ports->setEnabled(false);
-    ui->lbl_error->setEnabled(false);
-  } else {
-    m_refresh_timer->stop();
-    ui->btn_start_stop->setText("Старт");
-    ui->cb_serial_ports->setEnabled(true);
-    ui->lbl_error->setEnabled(true);
+MainWindow::chronometer_controller_state_changed(int state) {
+  switch (state) {
+    case CC_RUNNING : //running
+      m_refresh_timer->start();
+      ui->btn_start_stop->setEnabled(true);
+      ui->btn_start_stop->setText("Стоп");
+      ui->cb_serial_ports->setEnabled(false);
+      ui->lbl_error->setEnabled(false);
+      break;
+    case CC_STOPPED : //stopped
+      m_refresh_timer->stop();
+      ui->btn_start_stop->setEnabled(true);
+      ui->btn_start_stop->setText("Старт");
+      ui->cb_serial_ports->setEnabled(true);
+      ui->lbl_error->setEnabled(true);
+      break;
+    case CC_PLAYING_SOUND : //playing sound
+      ui->btn_start_stop->setEnabled(false);
+      break;
+    default:
+      break;
   }
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::chronometer_controller_error_happened(QString err) {
+  ui->lbl_error->setVisible(true);
+  ui->lbl_error->setText(err);
 }
 //////////////////////////////////////////////////////////////
 
@@ -187,63 +162,4 @@ void
 MainWindow::btn_fall1_released() {
   m_chronometer_controller->fall1();
   refresh_timer_timeout();
-}
-
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
-
-CStartSoundPlayer::CStartSoundPlayer(QObject *parent) :
-  QObject(parent),
-  m_timer(nullptr),
-  m_start_player(nullptr) ,
-  m_signals_count(3) {
-  m_timer = new QTimer(this);
-  m_timer->setInterval(1000);
-  m_start_player = new QMediaPlayer;
-  connect(m_timer, &QTimer::timeout, this, &CStartSoundPlayer::timer_timeout);
-}
-
-CStartSoundPlayer::~CStartSoundPlayer() {
-  if (m_timer) delete m_timer;
-  if (m_start_player) delete m_start_player;
-}
-//////////////////////////////////////////////////////////////
-
-void CStartSoundPlayer::abort() {
-  m_timer->stop();
-  m_start_player->stop();
-  emit finished();
-}
-//////////////////////////////////////////////////////////////
-
-void
-CStartSoundPlayer::timer_timeout() {
-  QString dp = QApplication::applicationDirPath();
-  QDir dir(dp + QDir::separator() + "resources");
-  --m_signals_count;
-  m_timer->stop();
-  if (m_signals_count > 0) {
-    m_timer->setInterval(1000);
-    m_start_player->setMedia(QUrl::fromLocalFile(dir.path() + QDir::separator() + beep1));
-    m_start_player->play();
-    m_timer->start();
-  } else {
-    emit start_signal();
-    m_start_player->setMedia(QUrl::fromLocalFile(dir.path() + QDir::separator() + beep2));
-
-    connect(m_start_player, &QMediaPlayer::stateChanged,
-            [this](QMediaPlayer::State newState) {
-      if (newState == QMediaPlayer::StoppedState) {
-        emit finished();
-      }
-    });
-    m_start_player->play();
-  }
-}
-//////////////////////////////////////////////////////////////
-
-void
-CStartSoundPlayer::play() {
-  m_timer->start(0);
 }

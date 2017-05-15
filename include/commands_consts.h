@@ -11,11 +11,11 @@ typedef enum btn_commands {
 
 typedef enum btn_consts{
   BC_BTN_COUNT = 5,
-  BC_BTN0 = 0b00000001,
-  BC_BTN1 = 0b00000011,
-  BC_PLATFORM0 = 0b00001000,
-  BC_PLATFORM1 = 0b00011000,
-  BC_BTN_START = 0b10000000
+  BC_BTN0       = 0b00000001,
+  BC_BTN1       = 0b00000011,
+  BC_PLATFORM0  = 0b00001000,
+  BC_PLATFORM1  = 0b00011000,
+  BC_BTN_START  = 0b01000000
 } btn_consts_t;
 
 #endif

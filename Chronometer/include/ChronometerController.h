@@ -7,6 +7,37 @@
 class QTimer;
 class QSerialPort;
 class QSerialPortInfo;
+class QMediaPlayer;
+
+enum state_t {
+  CC_RUNNING = 1,
+  CC_STOPPED = 2,
+  CC_PLAYING_SOUND = 3
+};
+
+
+class CStartSoundPlayer : public QObject {
+  Q_OBJECT
+private:
+  QTimer* m_timer;
+  QMediaPlayer* m_start_player;
+  int8_t m_signals_count;
+public:
+  CStartSoundPlayer(QObject* parent = nullptr);
+  virtual ~CStartSoundPlayer();
+
+  void abort();
+
+private slots:
+  void timer_timeout();
+public slots:
+  void play();
+
+signals:
+  void start_signal();
+  void finished();
+};
+//////////////////////////////////////////////////////////////
 
 class CChronometerController : public QObject {
   Q_OBJECT
@@ -26,7 +57,10 @@ private:
 
   void stop_time0();
   void stop_time1();
-  void handle_rx(uint8_t rx);
+  void handle_rx(uint8_t rx);  
+
+  void start_timer();
+  void play_start_sound();
 
 public:
   static const int FALL_TIME = 0;
@@ -34,7 +68,7 @@ public:
   CChronometerController(QObject* parent = nullptr);
   virtual ~CChronometerController();
 
-  bool start(QString &err);
+  void start();
   void stop_all();
 
   void fall0();
@@ -52,7 +86,8 @@ private slots:
   void serial_port_ready_read();
 
 signals:
-  void state_changed(bool running);
+  void state_changed(int state);
+  void error_happened(QString err);
 };
 
 #endif // CHRONOMETERCONTROLLER_H

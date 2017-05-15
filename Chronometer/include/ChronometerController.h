@@ -43,7 +43,7 @@ class CChronometerController : public QObject {
   Q_OBJECT
 private:  
   bool      m_is_running;
-  int32_t  m_current_ms;
+  int32_t   m_current_ms;
   QTimer *  m_timer;
 
   int32_t  m_time0_ms;
@@ -59,7 +59,6 @@ private:
   void stop_time1();
   void handle_rx(uint8_t rx);  
 
-  void start_timer();
   void play_start_sound();
 
 public:
@@ -82,6 +81,7 @@ public:
   bool set_serial_port(const QSerialPortInfo& port_info, QString &err);
 
 private slots:
+  void start_timer();
   void ms_timer_timeout();
   void serial_port_ready_read();
 

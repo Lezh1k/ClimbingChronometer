@@ -149,10 +149,10 @@ CChronometerController::start_timer() {
   }
 
   m_time0_ms = m_time1_ms = m_current_ms = 0;
-  m_is_running = true;
   m_time0_stopped = m_time1_stopped = false;
   m_time_start = std::chrono::high_resolution_clock::now();
   m_timer->start();
+  m_is_running = true;
   emit state_changed((int)CC_RUNNING);
 }
 //////////////////////////////////////////////////////////////
@@ -209,8 +209,10 @@ CChronometerController::ms_timer_timeout() {
   m_time_stop = std::chrono::high_resolution_clock::now();
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
-  if (!m_time0_stopped) m_time0_ms = m_current_ms;
-  if (!m_time1_stopped) m_time1_ms = m_current_ms;
+  if (!m_time0_stopped)
+    m_time0_ms = m_current_ms;
+  if (!m_time1_stopped)
+    m_time1_ms = m_current_ms;
 }
 //////////////////////////////////////////////////////////////
 
@@ -250,10 +252,7 @@ CChronometerController::play_start_sound() {
 
   connect(th, &QThread::started, player, &CStartSoundPlayer::play);
   connect(player, &CStartSoundPlayer::finished, th, &QThread::quit);
-
-  connect(player, &CStartSoundPlayer::start_signal, [this](){
-    start_timer();
-  });
+  connect(player, &CStartSoundPlayer::start_signal, this, &CChronometerController::start_timer);
 
   connect(th, &QThread::finished, player, &CStartSoundPlayer::deleteLater);
   connect(th, &QThread::finished, th, &QThread::deleteLater);

@@ -64,22 +64,22 @@ static inline void wait_for_transmitter() { while ( !(UCSRA & (1 << UDRE)) ) ; }
 volatile uint8_t rx_buff = 0;
 volatile uint8_t btn_start_in_progress = cb_false;
 
+static void send_tx(uint8_t val) {
+  wait_for_transmitter();
+  UDR = val;
+}
+//////////////////////////////////////////////////////////////
+
 ISR(TIMER0_COMPA_vect) {
   disable_timer0_ocra_int();
   if (btn_start_is_down())
-    send_tx(BC_BTN_START);
+    send_tx((uint8_t)BC_BTN_START);
   btn_start_in_progress = cb_false;
 }
 //////////////////////////////////////////////////////////////
 
 ISR(USART_RX_vect) {
   rx_buff = UDR;
-}
-//////////////////////////////////////////////////////////////
-
-static void send_tx(uint8_t val) {
-  wait_for_transmitter();
-  UDR = val;
 }
 //////////////////////////////////////////////////////////////
 
@@ -96,7 +96,7 @@ main(void) {
   register uint8_t plt0_pressed = cb_false;
   register uint8_t plt1_pressed = cb_false;
 
-  DDRD = (1 << PD1) | PIN_BTN0 | PIN_BTN1 | PIN_PLATFORM0 | PIN_PLATFORM1;
+  DDRD = (1 << PD1) | PIN_BTN0 | PIN_BTN1 | PIN_PLATFORM0 | PIN_PLATFORM1 | PIN_BTN_START;
   DDRB = PORT_LED0 | PORT_LED1 | PORT_LED2 | PORT_LED3;
 
   GIMSK = 0;

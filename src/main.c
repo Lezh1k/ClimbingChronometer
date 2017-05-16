@@ -74,6 +74,7 @@ ISR(TIMER0_COMPA_vect) {
   disable_timer0_ocra_int();
   if (btn_start_is_down())
     send_tx((uint8_t)BC_BTN_START);
+  btn_start_in_progress = cb_false;
 }
 //////////////////////////////////////////////////////////////
 
@@ -107,7 +108,7 @@ main(void) {
 
 //  TIMER0
   TCCR0B = (1 << CS01); //use /8 prescaler
-  OCR0A = 30; //30 microseconds
+  OCR0A = 200; //200 microseconds
 
   //USART
   MCUCR = (1 << ISC11) | (1 << ISC01); //interrupt int0 on falling edge. interrupt int1 on falling edge.
@@ -124,22 +125,21 @@ main(void) {
     switch (rx_buff) {
       case BCMD_RESTART:
         btn01_coeff = plt01_coeff = 2;
-        btn_start_in_progress = is_pe =
-            btn0_pressed = btn1_pressed =
+        is_pe = btn0_pressed = btn1_pressed =
             plt0_pressed = plt1_pressed = cb_false;
         led0_turn_off();
         led1_turn_off();
         led2_turn_off();
         led3_turn_off();        
-        rx_buff = 0x00;
+        tx_buff = rx_buff = 0x00;
         break;
       case BCMD_INIT:
-        rx_buff = 0x00;
+        tx_buff = rx_buff = 0x00;
         send_tx(BCMD_INIT_ACK);
         break;
       case BCMD_START_COUNTDOWN:        
         is_pe = 1;
-        rx_buff = tx_buff = 0x00;
+        rx_buff = 0x00;
         send_tx(BCMD_START_COUNTDOWN_ACK);
         break;
       default:

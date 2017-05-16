@@ -112,7 +112,7 @@ CChronometerController::handle_rx(uint8_t rx) {
     case ( BC_BTN1 << 1 | BC_BTN0 ) :
       stop_time1();
       stop_time0();
-      break;      
+      break;
     default:
       //todo notify somehow
       break;

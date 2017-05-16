@@ -34,6 +34,7 @@ CChronometerController::~CChronometerController() {
 
 void
 CChronometerController::start() {
+  m_is_running = true;
   play_start_sound();
 }
 //////////////////////////////////////////////////////////////
@@ -91,9 +92,10 @@ CChronometerController::handle_rx(uint8_t rx) {
   uint8_t plt01_state = (rx >> 3) & 0x07;
   uint8_t btn01_state = rx & 0x07;
 
+  qDebug() << QString("%1").arg(rx, 8, 2);
+
   if (rx == BC_BTN_START) {
-    if (!m_is_running)
-      start();
+    if (!m_is_running) start();
   }
 
   switch (btn01_state) {
@@ -234,6 +236,7 @@ CChronometerController::play_start_sound() {
   if (!dir.exists()) {
     emit error_happened("resources directory doesn't exist");
     emit state_changed((int)CC_STOPPED);
+    m_is_running = false;
     return;
   }
 
@@ -243,6 +246,7 @@ CChronometerController::play_start_sound() {
     if (!f.exists()) {
       emit error_happened(QString("%1 doesn't exist").arg(files[i]));
       emit state_changed((int)CC_STOPPED);
+      m_is_running = false;
       return;
     }
   }

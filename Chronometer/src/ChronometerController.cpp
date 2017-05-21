@@ -33,8 +33,19 @@ CChronometerController::~CChronometerController() {
 //////////////////////////////////////////////////////////////
 
 void
-CChronometerController::start() {
+CChronometerController::start() {  
+  static uint8_t start_countdown[1] = {BCMD_START_COUNTDOWN};
   m_is_running = true;
+
+  qint64 written = m_serial_port->write((char*)start_countdown, 1);
+  bool flushed = m_serial_port->flush();
+
+  if (written != 1 || !flushed) {
+    emit error_happened(m_serial_port->errorString());
+    emit state_changed((int)CC_STOPPED);
+    return;
+  }
+
   play_start_sound();
 }
 //////////////////////////////////////////////////////////////
@@ -47,6 +58,14 @@ CChronometerController::stop_all() {
   m_time_stop = std::chrono::high_resolution_clock::now();
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
+
+  static uint8_t cmd[1] = {BCMD_INIT_STATE};
+  qint64 written = m_serial_port->write((char*)cmd, 1);
+  bool flushed = m_serial_port->flush();
+
+  if (written != 1 || !flushed) {
+    emit error_happened(m_serial_port->errorString());
+  }
   emit state_changed((int)CC_STOPPED);
 }
 //////////////////////////////////////////////////////////////
@@ -94,10 +113,13 @@ CChronometerController::handle_rx(uint8_t rx) {
 
   qDebug() << QString("%1").arg(rx, 8, 2);
 
+  //handle start button
   if (rx == BC_BTN_START) {
     if (!m_is_running) start();
+    return;
   }
 
+  //handle stop buttons state
   switch (btn01_state) {
     case ( BC_BTN0 << 1 ) :
       stop_time0();
@@ -118,6 +140,7 @@ CChronometerController::handle_rx(uint8_t rx) {
       break;
   } //switch btn01_state
 
+  //handle start platforms state
   switch (plt01_state) {
     case ( BC_PLATFORM0 << 1 ) :
       //platform0 first
@@ -140,7 +163,7 @@ CChronometerController::handle_rx(uint8_t rx) {
 
 void
 CChronometerController::start_timer() {
-  static uint8_t restart_cmd[1] = {BCMD_RESTART};
+  static uint8_t restart_cmd[1] = {BCMD_INIT_STATE};
   qint64 written = m_serial_port->write((char*)restart_cmd, 1);
   bool flushed = m_serial_port->flush();
 

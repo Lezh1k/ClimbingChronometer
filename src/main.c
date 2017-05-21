@@ -30,17 +30,17 @@ typedef enum boolean {
 #define PORT_LED2 (1 << PB2)
 #define PORT_LED3 (1 << PB3)
 
-static inline void led0_turn_on() { PORTB |= PORT_LED0 ; }
-static inline void led0_turn_off() { PORTB &= ~PORT_LED0 ;}
+static inline void led0_turn_on()   { PORTB |= PORT_LED0 ; }
+static inline void led0_turn_off()  { PORTB &= ~PORT_LED0 ;}
 
-static inline void led1_turn_on() { PORTB |= PORT_LED1 ; }
-static inline void led1_turn_off() { PORTB &= ~PORT_LED1 ;}
+static inline void led1_turn_on()   { PORTB |= PORT_LED1 ; }
+static inline void led1_turn_off()  { PORTB &= ~PORT_LED1 ;}
 
-static inline void led2_turn_on() { PORTB |= PORT_LED0 ; }
-static inline void led2_turn_off() { PORTB &= ~PORT_LED0 ;}
+static inline void led2_turn_on()   { PORTB |= PORT_LED0 ; }
+static inline void led2_turn_off()  { PORTB &= ~PORT_LED0 ;}
 
-static inline void led3_turn_on() { PORTB |= PORT_LED0 ; }
-static inline void led3_turn_off() { PORTB &= ~PORT_LED0 ;}
+static inline void led3_turn_on()   { PORTB |= PORT_LED0 ; }
+static inline void led3_turn_off()  { PORTB &= ~PORT_LED0 ;}
 
 static inline uint8_t btn0_is_down()      { return !(PIND & PIN_BTN0); }
 static inline uint8_t btn1_is_down()      { return !(PIND & PIN_BTN1); }
@@ -61,8 +61,8 @@ static inline void disable_timer0_ocra_int()  { TIMSK &= ~(1 << OCIE0A); }
 
 static inline void wait_for_transmitter() { while ( !(UCSRA & (1 << UDRE)) ) ; }
 
-volatile uint8_t rx_buff = 0;
-volatile uint8_t btn_start_in_progress = cb_false;
+register uint8_t rx_buff asm("r4");//= 0x00;
+register uint8_t btn_start_in_progress asm("r5");//= cb_false;
 
 static void send_tx(uint8_t val) {
   wait_for_transmitter();
@@ -73,8 +73,7 @@ static void send_tx(uint8_t val) {
 ISR(TIMER0_COMPA_vect) {
   disable_timer0_ocra_int();
   if (btn_start_is_down())
-    send_tx((uint8_t)BC_BTN_START);
-  btn_start_in_progress = cb_false;
+    send_tx((uint8_t)BC_BTN_START);  
 }
 //////////////////////////////////////////////////////////////
 
@@ -95,6 +94,9 @@ main(void) {
   register uint8_t is_pe = cb_false; //is platforms enabled
   register uint8_t plt0_pressed = cb_false;
   register uint8_t plt1_pressed = cb_false;
+
+  rx_buff = 0x00;
+  btn_start_in_progress = cb_false;
 
   DDRD = (1 << PD1) |
           PIN_BTN0 | PIN_BTN1 | PIN_PLATFORM0 |
@@ -123,10 +125,10 @@ main(void) {
 
   while(1) {
     switch (rx_buff) {
-      case BCMD_RESTART:
+      case BCMD_INIT_STATE:
         btn01_coeff = plt01_coeff = 2;
         is_pe = btn0_pressed = btn1_pressed =
-            plt0_pressed = plt1_pressed = cb_false;
+            plt0_pressed = plt1_pressed = btn_start_in_progress = cb_false;
         led0_turn_off();
         led1_turn_off();
         led2_turn_off();
@@ -137,10 +139,9 @@ main(void) {
         tx_buff = rx_buff = 0x00;
         send_tx(BCMD_INIT_ACK);
         break;
-      case BCMD_START_COUNTDOWN:        
+      case BCMD_START_COUNTDOWN:
         is_pe = 1;
         rx_buff = 0x00;
-        send_tx(BCMD_START_COUNTDOWN_ACK);
         break;
       default:
         break;
@@ -184,6 +185,7 @@ main(void) {
         led3_turn_on();
       }
     } //if (is_pe)
+    /*-------------------------------------*/
   } //while 1
 } //main
 //////////////////////////////////////////////////////////////

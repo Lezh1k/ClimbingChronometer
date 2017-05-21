@@ -4,9 +4,8 @@
 typedef enum btn_commands {
   BCMD_INIT                = 0xa8,
   BCMD_INIT_ACK            = 0x8a,
-  BCMD_START_COUNTDOWN     = 0xcd,
-  BCMD_START_COUNTDOWN_ACK = 0xdc,
-  BCMD_RESTART             = 0xae,
+  BCMD_START_COUNTDOWN     = 0xcd,  
+  BCMD_INIT_STATE             = 0xae,
 } btn_commands_t;
 
 typedef enum btn_consts{

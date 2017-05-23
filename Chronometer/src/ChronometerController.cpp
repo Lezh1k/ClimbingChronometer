@@ -13,7 +13,7 @@
 
 CChronometerController::CChronometerController(QObject *parent) :
   QObject(parent),
-  m_is_running(false),
+  m_state(CC_STOPPED),
   m_current_ms(0),
   m_timer(nullptr),
   m_time0_ms(0),
@@ -35,14 +35,13 @@ CChronometerController::~CChronometerController() {
 void
 CChronometerController::start() {  
   static uint8_t start_countdown[1] = {BCMD_START_COUNTDOWN};
-  m_is_running = true;
 
   qint64 written = m_serial_port->write((char*)start_countdown, 1);
   bool flushed = m_serial_port->flush();
 
   if (written != 1 || !flushed) {
     emit error_happened(m_serial_port->errorString());
-    emit state_changed((int)CC_STOPPED);
+    change_state(CC_STOPPED);
     return;
   }
 
@@ -52,7 +51,7 @@ CChronometerController::start() {
 
 void
 CChronometerController::stop_all() {
-  m_is_running = false;
+  change_state(CC_STOPPED);
   m_time0_stopped = m_time1_stopped = true;
   m_timer->stop();
   m_time_stop = std::chrono::high_resolution_clock::now();
@@ -66,7 +65,6 @@ CChronometerController::stop_all() {
   if (written != 1 || !flushed) {
     emit error_happened(m_serial_port->errorString());
   }
-  emit state_changed((int)CC_STOPPED);
 }
 //////////////////////////////////////////////////////////////
 
@@ -85,6 +83,24 @@ CChronometerController::fall1() {
   m_time1_stopped = true;
   m_time1_ms = FALL_TIME;
   if (m_time0_stopped && m_time1_stopped) stop_all();
+}
+//////////////////////////////////////////////////////////////
+
+void
+CChronometerController::platform0_pressed() {
+
+}
+//////////////////////////////////////////////////////////////
+
+void
+CChronometerController::platform1_pressed() {
+
+}
+//////////////////////////////////////////////////////////////
+
+void
+CChronometerController::change_state(state_t new_state) {
+  emit state_changed((int)(m_state = new_state));
 }
 //////////////////////////////////////////////////////////////
 
@@ -115,7 +131,7 @@ CChronometerController::handle_rx(uint8_t rx) {
 
   //handle start button
   if (rx == BC_BTN_START) {
-    if (!m_is_running) start();
+    if (m_state != CC_RUNNING) start();
     return;
   }
 
@@ -143,16 +159,18 @@ CChronometerController::handle_rx(uint8_t rx) {
   //handle start platforms state
   switch (plt01_state) {
     case ( BC_PLATFORM0 << 1 ) :
-      //platform0 first
+      platform0_pressed();
       break;
     case ( BC_PLATFORM0 << 1 | BC_PLATFORM1 ) :
-      //platform0 then platform1
+      platform0_pressed();
+      platform1_pressed();
       break;
     case ( BC_PLATFORM1 << 1 ) :
-      //platform1 first
+      platform1_pressed();
       break;
     case ( BC_PLATFORM1 << 1 | BC_PLATFORM0 ) :
-      //platform1 then platform0
+      platform1_pressed();
+      platform0_pressed();
       break;
     default:
       //todo notify somehow
@@ -169,16 +187,15 @@ CChronometerController::start_timer() {
 
   if (written != 1 || !flushed) {
     emit error_happened(m_serial_port->errorString());
-    emit state_changed((int)CC_STOPPED);
+    change_state(CC_STOPPED);
     return;
   }
 
   m_time0_ms = m_time1_ms = m_current_ms = 0;
   m_time0_stopped = m_time1_stopped = false;
   m_time_start = std::chrono::high_resolution_clock::now();
-  m_timer->start();
-  m_is_running = true;
-  emit state_changed((int)CC_RUNNING);
+  m_timer->start();  
+  change_state(CC_RUNNING);
 }
 //////////////////////////////////////////////////////////////
 
@@ -258,8 +275,7 @@ CChronometerController::play_start_sound() {
   QDir dir(dp + QDir::separator() + "resources");
   if (!dir.exists()) {
     emit error_happened("resources directory doesn't exist");
-    emit state_changed((int)CC_STOPPED);
-    m_is_running = false;
+    change_state(CC_STOPPED);
     return;
   }
 
@@ -268,8 +284,7 @@ CChronometerController::play_start_sound() {
     QFile f(dir.path() + QDir::separator() + files[i]);
     if (!f.exists()) {
       emit error_happened(QString("%1 doesn't exist").arg(files[i]));
-      emit state_changed((int)CC_STOPPED);
-      m_is_running = false;
+      change_state(CC_STOPPED);
       return;
     }
   }
@@ -286,9 +301,8 @@ CChronometerController::play_start_sound() {
 
   player->moveToThread(th);
   th->start();
-  emit state_changed((int)CC_PLAYING_SOUND);
+  change_state(CC_PLAYING_SOUND);
 }
-//////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////

@@ -75,7 +75,7 @@ MainWindow::~MainWindow() {
 
 void
 MainWindow::btn_start_stop_released() {
-  if (!m_chronometer_controller->is_running()) {
+  if (!m_chronometer_controller->is_started()) {
     m_chronometer_controller->start();
   } else {
     m_chronometer_controller->stop_all();    

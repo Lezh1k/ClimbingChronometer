@@ -42,7 +42,7 @@ signals:
 class CChronometerController : public QObject {
   Q_OBJECT
 private:  
-  bool      m_is_running;
+  state_t   m_state;
   int32_t   m_current_ms;
   QTimer *  m_timer;
 
@@ -54,6 +54,8 @@ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> m_time_start;
   std::chrono::time_point<std::chrono::high_resolution_clock> m_time_stop;
   QSerialPort* m_serial_port;
+
+  void change_state(state_t new_state);
 
   void stop_time0();
   void stop_time1();
@@ -73,11 +75,14 @@ public:
   void fall0();
   void fall1();
 
+  void platform0_pressed();
+  void platform1_pressed();
+
   int32_t time0_ms() const {return m_time0_ms;}
   int32_t time1_ms() const {return m_time1_ms;}
   int32_t current_ms() const {return m_current_ms;}
 
-  bool is_running() const {return m_is_running;}
+  bool is_started() const {return m_state == CC_RUNNING || m_state == CC_PLAYING_SOUND;}
   bool set_serial_port(const QSerialPortInfo& port_info, QString &err);
 
 private slots:

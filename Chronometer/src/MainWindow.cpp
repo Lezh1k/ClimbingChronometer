@@ -14,12 +14,20 @@
 #include <QPushButton>
 #include <QComboBox>
 
+#include <QApplication>
+#include <QDir>
+#include <QFile>
+#include <QThread>
+#include <QMediaPlayer>
+
+
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   ui(new Ui::MainWindow),
   m_chronometer_controller(nullptr),
   m_refresh_timer(nullptr),
-  m_model_ports(nullptr) {
+  m_model_ports(nullptr)
+  {
 
   ui->setupUi(this);
   m_chronometer_controller = new CChronometerController;
@@ -37,12 +45,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(m_refresh_timer, &QTimer::timeout,
           this, &MainWindow::refresh_timer_timeout);
+
   connect(ui->btn_start_stop, &QPushButton::released,
           this, &MainWindow::btn_start_stop_released);
+
   connect(ui->cb_serial_ports, (void(QComboBox::*)(int)) &QComboBox::currentIndexChanged,
           this, &MainWindow::cb_serial_ports_index_changed);
+
   connect(m_chronometer_controller, &CChronometerController::state_changed,
           this, &MainWindow::chronometer_controller_state_changed);
+  connect(m_chronometer_controller, &CChronometerController::error_happened,
+          this, &MainWindow::chronometer_controller_error_happened);
+
   connect(ui->btn_fall1, &QPushButton::released,
           this, &MainWindow::btn_fall0_released);
   connect(ui->btn_fall2, &QPushButton::released,
@@ -54,18 +68,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow() {
   if (m_chronometer_controller) delete m_chronometer_controller;
+  if (m_model_ports) delete m_model_ports;
   delete ui;
 }
 //////////////////////////////////////////////////////////////
 
 void
 MainWindow::btn_start_stop_released() {
-  QString start_str;
-  if (!m_chronometer_controller->is_running()) {
-    if (!m_chronometer_controller->start(start_str)) {
-      ui->lbl_error->setVisible(true);
-      ui->lbl_error->setText(start_str);
-    }
+  if (!m_chronometer_controller->is_started()) {
+    m_chronometer_controller->start();
   } else {
     m_chronometer_controller->stop_all();    
   }
@@ -108,18 +119,35 @@ MainWindow::cb_serial_ports_index_changed(int ix) {
 //////////////////////////////////////////////////////////////
 
 void
-MainWindow::chronometer_controller_state_changed(bool running) {
-  if (running) {
-    m_refresh_timer->start();
-    ui->btn_start_stop->setText("Стоп");
-    ui->cb_serial_ports->setEnabled(false);
-    ui->lbl_error->setEnabled(false);
-  } else {
-    m_refresh_timer->stop();
-    ui->btn_start_stop->setText("Старт");
-    ui->cb_serial_ports->setEnabled(true);
-    ui->lbl_error->setEnabled(true);
+MainWindow::chronometer_controller_state_changed(int state) {
+  switch (state) {
+    case CC_RUNNING : //running
+      m_refresh_timer->start();
+      ui->btn_start_stop->setEnabled(true);
+      ui->btn_start_stop->setText("Стоп");
+      ui->cb_serial_ports->setEnabled(false);
+      ui->lbl_error->setEnabled(false);
+      break;
+    case CC_STOPPED : //stopped
+      m_refresh_timer->stop();
+      ui->btn_start_stop->setEnabled(true);
+      ui->btn_start_stop->setText("Старт");
+      ui->cb_serial_ports->setEnabled(true);
+      ui->lbl_error->setEnabled(true);
+      break;
+    case CC_PLAYING_SOUND : //playing sound
+      ui->btn_start_stop->setEnabled(false);
+      break;
+    default:
+      break;
   }
+}
+//////////////////////////////////////////////////////////////
+
+void
+MainWindow::chronometer_controller_error_happened(QString err) {
+  ui->lbl_error->setVisible(true);
+  ui->lbl_error->setText(err);
 }
 //////////////////////////////////////////////////////////////
 
@@ -135,4 +163,3 @@ MainWindow::btn_fall1_released() {
   m_chronometer_controller->fall1();
   refresh_timer_timeout();
 }
-//////////////////////////////////////////////////////////////

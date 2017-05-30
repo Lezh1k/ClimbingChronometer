@@ -58,7 +58,7 @@ CChronometerController::stop_all() {
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
 
-  static uint8_t cmd[1] = {BCMD_INIT_STATE};
+  static uint8_t cmd[1] = {BCMD_BTN_START_ENABLE};
   qint64 written = m_serial_port->write((char*)cmd, 1);
   bool flushed = m_serial_port->flush();
 
@@ -202,7 +202,7 @@ CChronometerController::start_timer() {
 bool
 CChronometerController::set_serial_port(const QSerialPortInfo &port_info,
                                         QString& err) {
-  static const uint8_t cmd_init[1] = {BCMD_INIT};
+  static const uint8_t cmd_init[1] = {BCMD_CHECK_DEV};
 
   if (m_serial_port) {
     delete m_serial_port;
@@ -233,7 +233,7 @@ CChronometerController::set_serial_port(const QSerialPortInfo &port_info,
     return false;
   }
 
-  if ((uint8_t)answer.at(0) != BCMD_INIT_ACK) {
+  if ((uint8_t)answer.at(0) != BCMD_CHECK_DEV_ACK) {
     err = QString("Received something different (not INIT_ACK) from controller. %1").
         arg((uint8_t)answer.at(0));
     return false;

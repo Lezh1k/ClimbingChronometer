@@ -135,9 +135,12 @@ main(void) {
         led3_turn_off();        
         tx_buff = rx_buff = 0x00;
         break;
-      case BCMD_INIT:
+      case BCMD_BTN_START_ENABLE:
+        btn_start_in_progress = cb_false;
+        break;
+      case BCMD_CHECK_DEV:
         tx_buff = rx_buff = 0x00;
-        send_tx(BCMD_INIT_ACK);
+        send_tx(BCMD_CHECK_DEV_ACK);
         break;
       case BCMD_START_COUNTDOWN:
         is_pe = 1;

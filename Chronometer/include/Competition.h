@@ -2,7 +2,6 @@
 #define COMPETITION_H
 
 #include <QObject>
-#include <map>
 #include <vector>
 
 class CCompetition : public QObject {

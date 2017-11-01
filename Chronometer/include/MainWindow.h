@@ -28,6 +28,7 @@ private:
   QStandardItemModel* m_model_ports;
 
 private slots:
+  void btn_refresh_com_released();
   void btn_start_stop_released();
   void refresh_timer_timeout();
   void cb_serial_ports_index_changed(int ix);

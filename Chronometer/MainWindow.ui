@@ -14,7 +14,7 @@
    <string>Megachronometer</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -37,9 +37,16 @@
        </property>
       </widget>
      </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="btn_refresh_com">
+       <property name="text">
+        <string>Refresh COM</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>240</x>
@@ -125,7 +132,7 @@
      <x>0</x>
      <y>0</y>
      <width>750</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

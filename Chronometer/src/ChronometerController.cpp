@@ -275,8 +275,6 @@ void CChronometerController::play_start_sound() {
   connect(player, &CStartSoundPlayer::finished, th, &QThread::quit);
   connect(player, &CStartSoundPlayer::start_signal, this,
           &CChronometerController::start_timer);
-
-  //  connect(th, &QThread::finished, player, &CStartSoundPlayer::deleteLater);
   connect(th, &QThread::finished, th, &QThread::deleteLater);
 
   player->moveToThread(th);

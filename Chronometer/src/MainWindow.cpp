@@ -62,6 +62,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->btn_fall2, &QPushButton::released,
           this, &MainWindow::btn_fall1_released);
 
+  connect(ui->btn_refresh_com, &QPushButton::released,
+          this, &MainWindow::btn_refresh_com_released);
+
   if (QSerialPortInfo::availablePorts().size() > 0)
     cb_serial_ports_index_changed(0);
 }
@@ -70,6 +73,21 @@ MainWindow::~MainWindow() {
   if (m_chronometer_controller) delete m_chronometer_controller;
   if (m_model_ports) delete m_model_ports;
   delete ui;
+}
+//////////////////////////////////////////////////////////////////////////
+
+void
+MainWindow::btn_refresh_com_released() {
+  m_model_ports->clear();
+  QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
+  for (auto i : lst_ports) {
+    QStandardItem* item = new QStandardItem(i.portName());
+    m_model_ports->appendRow(item);
+  }
+  ui->cb_serial_ports->setModel(m_model_ports);
+
+  if (QSerialPortInfo::availablePorts().size() > 0)
+    cb_serial_ports_index_changed(0);
 }
 //////////////////////////////////////////////////////////////
 
@@ -126,6 +144,7 @@ MainWindow::chronometer_controller_state_changed(int state) {
       ui->btn_start_stop->setEnabled(true);
       ui->btn_start_stop->setText("Стоп");
       ui->cb_serial_ports->setEnabled(false);
+      ui->btn_refresh_com->setEnabled(false);
       ui->lbl_error->setEnabled(false);
       break;
     case CC_STOPPED : //stopped
@@ -133,6 +152,7 @@ MainWindow::chronometer_controller_state_changed(int state) {
       ui->btn_start_stop->setEnabled(true);
       ui->btn_start_stop->setText("Старт");
       ui->cb_serial_ports->setEnabled(true);
+      ui->btn_refresh_com->setEnabled(true);
       ui->lbl_error->setEnabled(true);
       break;
     case CC_PLAYING_SOUND : //playing sound

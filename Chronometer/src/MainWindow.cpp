@@ -65,6 +65,15 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->btn_refresh_com, &QPushButton::released,
           this, &MainWindow::btn_refresh_com_released);
 
+  QTimer *ti = new QTimer;
+  ti->setInterval(100);
+  connect(ti, &QTimer::timeout, [this]() {
+    adjust_font_for_time_lines();
+  });
+  connect(ti, &QTimer::timeout, ti, &QTimer::deleteLater);
+  ti->setSingleShot(true);
+  ti->start();
+
   if (QSerialPortInfo::availablePorts().size() > 0)
     cb_serial_ports_index_changed(0);
 }
@@ -186,10 +195,15 @@ MainWindow::btn_fall1_released() {
 ////////////////////////////////////////////////////////////////////////////
 
 void
-MainWindow::resizeEvent(QResizeEvent *event) {
-  QMainWindow::resizeEvent(event);
+MainWindow::adjust_font_for_time_lines() {
   QLineEdit* les[] = {ui->le_time1, ui->le_time2};
   adjust_font_size_for_same_components(les, 2);
+}
+
+void
+MainWindow::resizeEvent(QResizeEvent *event) {
+  QMainWindow::resizeEvent(event);
+  adjust_font_for_time_lines();
 }
 /////////////////////////////////////////////////////////////////////////
 

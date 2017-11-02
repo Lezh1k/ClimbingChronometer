@@ -31,6 +31,7 @@ private:
 
   void adjust_font_size_for_same_components(QLineEdit **le, size_t count);
 
+  void adjust_font_for_time_lines();
 private slots:
   void btn_refresh_com_released();
   void btn_start_stop_released();

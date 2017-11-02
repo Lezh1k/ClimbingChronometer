@@ -26,8 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow),
   m_chronometer_controller(nullptr),
   m_refresh_timer(nullptr),
-  m_model_ports(nullptr)
-  {
+  m_model_ports(nullptr) {
 
   ui->setupUi(this);
   m_chronometer_controller = new CChronometerController;
@@ -86,7 +85,7 @@ MainWindow::~MainWindow() {
 //////////////////////////////////////////////////////////////////////////
 
 void
-MainWindow::btn_refresh_com_released() {
+MainWindow::btn_refresh_com_released() {  
   m_model_ports->clear();
   QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
   for (auto i : lst_ports) {
@@ -94,7 +93,6 @@ MainWindow::btn_refresh_com_released() {
     m_model_ports->appendRow(item);
   }
   ui->cb_serial_ports->setModel(m_model_ports);
-
   if (QSerialPortInfo::availablePorts().size() > 0)
     cb_serial_ports_index_changed(0);
 }
@@ -104,6 +102,8 @@ void
 MainWindow::btn_start_stop_released() {
   if (!m_chronometer_controller->is_started()) {
     m_chronometer_controller->start();
+    ui->le_time1->setText("00.000");
+    ui->le_time2->setText("00.000");
   } else {
     m_chronometer_controller->stop_all();    
   }
@@ -130,17 +130,10 @@ MainWindow::cb_serial_ports_index_changed(int ix) {
   QString err;
   ui->lbl_error->setVisible(false);
   QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
-  if (lst_ports.size() > ix) {
+  if (lst_ports.size() > ix && ix >= 0) {
     m_chronometer_controller->set_serial_port(lst_ports.at(ix), err);
     ui->lbl_error->setVisible(true);
     ui->lbl_error->setText(err);
-  } else {
-    m_model_ports->clear();
-    QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
-    for (auto i : lst_ports) {
-      QStandardItem* item = new QStandardItem(i.portName());
-      m_model_ports->appendRow(item);
-    }
   }
 }
 //////////////////////////////////////////////////////////////
@@ -166,6 +159,9 @@ MainWindow::chronometer_controller_state_changed(int state) {
       break;
     case CC_PLAYING_SOUND : //playing sound
       ui->btn_start_stop->setEnabled(false);
+      ui->cb_serial_ports->setEnabled(false);
+      ui->btn_refresh_com->setEnabled(false);
+      ui->lbl_error->setEnabled(false);
       break;
     default:
       break;

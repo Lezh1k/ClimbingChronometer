@@ -51,8 +51,9 @@ private:
   bool m_time0_stopped;
   bool m_time1_stopped;
 
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_time_start;
-  std::chrono::time_point<std::chrono::high_resolution_clock> m_time_stop;
+  typedef std::chrono::system_clock controller_clock;
+  controller_clock::time_point m_time_start;
+  controller_clock::time_point m_time_stop;
   QSerialPort* m_serial_port;
 
   void change_state(state_t new_state);

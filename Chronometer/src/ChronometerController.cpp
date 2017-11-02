@@ -69,7 +69,7 @@ void CChronometerController::stop_all() {
   change_state(CC_STOPPED);
   m_time0_stopped = m_time1_stopped = true;
   m_timer->stop();
-  m_time_stop = std::chrono::high_resolution_clock::now();
+  m_time_stop = controller_clock::now();
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
   dev_btn_start_enable();
@@ -194,7 +194,7 @@ void CChronometerController::start_timer() {
   dev_init_state();
   m_time0_ms = m_time1_ms = m_current_ms = 0;
   m_time0_stopped = m_time1_stopped = false;
-  m_time_start = std::chrono::high_resolution_clock::now();
+  m_time_start = controller_clock::now();
   m_timer->start();
   change_state(CC_RUNNING);
 }
@@ -248,7 +248,7 @@ bool CChronometerController::set_serial_port(const QSerialPortInfo& port_info,
 //////////////////////////////////////////////////////////////
 
 void CChronometerController::ms_timer_timeout() {
-  m_time_stop = std::chrono::high_resolution_clock::now();
+  m_time_stop = controller_clock::now();
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
   if (!m_time0_stopped) m_time0_ms = m_current_ms;

@@ -12,6 +12,8 @@ class QTimer;
 class QSerialPort;
 class QStandardItemModel;
 class QMediaPlayer;
+class QLineEdit;
+class QLabel;
 
 class MainWindow : public QMainWindow
 {
@@ -27,6 +29,8 @@ private:
   QTimer* m_refresh_timer;
   QStandardItemModel* m_model_ports;
 
+  void adjust_font_size_for_same_components(QLineEdit **le, size_t count);
+
 private slots:
   void btn_refresh_com_released();
   void btn_start_stop_released();
@@ -38,6 +42,10 @@ private slots:
 
   void chronometer_controller_state_changed(int state);
   void chronometer_controller_error_happened(QString err);
+
+  // QWidget interface
+protected:
+  virtual void resizeEvent(QResizeEvent *event);
 };
 
 #endif // MAINWINDOW_H

@@ -19,7 +19,7 @@
 #include <QFile>
 #include <QThread>
 #include <QMediaPlayer>
-
+#include <assert.h>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -106,7 +106,7 @@ MainWindow::refresh_timer_timeout() {
   static const QString tf = "ss.zzz";  
   int32_t ms[2] = {m_chronometer_controller->time0_ms(),
                    m_chronometer_controller->time1_ms()};
-  QLineEdit* le[2] = {ui->le_time1, ui->le_time2 };
+  QLineEdit* le[2] = {ui->le_time1, ui->le_time2};
 
   for (int i = 0; i < 2; ++i) {
     QTime t = QTime::fromMSecsSinceStartOfDay(ms[i]);
@@ -182,4 +182,41 @@ void
 MainWindow::btn_fall1_released() {
   m_chronometer_controller->fall1();
   refresh_timer_timeout();
+}
+////////////////////////////////////////////////////////////////////////////
+
+void
+MainWindow::resizeEvent(QResizeEvent *event) {
+  QMainWindow::resizeEvent(event);
+  QLineEdit* les[] = {ui->le_time1, ui->le_time2};
+  adjust_font_size_for_same_components(les, 2);
+}
+/////////////////////////////////////////////////////////////////////////
+
+void
+MainWindow::adjust_font_size_for_same_components(QLineEdit** le,
+                                                 size_t count) {
+  assert(le);
+  assert(count > 0);
+
+  QString str = le[0]->text();
+  QFont font = le[0]->font();
+  QFontMetrics fm(font);
+
+  int first, last, middle;
+  last = 2048; first = 0; //we don't need such a big value. but I want to be sure that we will find font size.
+  while (first < last) {
+    middle = (first+last) >> 1;
+    font.setPointSize(middle);
+    fm = QFontMetrics(font);
+    if (fm.height() > le[0]->height() ||
+        fm.width(str) > le[0]->width()) {
+      last = middle;
+    } else {
+      first = middle+1;
+    }
+  }
+  font.setPointSize(last-2);
+  for (size_t i = 0; i < count; ++i)
+    le[i]->setFont(font);
 }

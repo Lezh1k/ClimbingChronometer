@@ -31,21 +31,39 @@ CChronometerController::~CChronometerController() {
 }
 //////////////////////////////////////////////////////////////
 
-void CChronometerController::start() {
+void CChronometerController::dev_start_countdown() {
   static uint8_t start_countdown[1] = {BCMD_START_COUNTDOWN};
+  if (m_serial_port) {
+    qint64 written = m_serial_port->write((char*)start_countdown, 1);
+    bool flushed = m_serial_port->flush();
 
-  qint64 written = m_serial_port->write((char*)start_countdown, 1);
-  bool flushed = m_serial_port->flush();
-
-  if (written != 1 || !flushed) {
-    emit error_happened(m_serial_port->errorString());
-    change_state(CC_STOPPED);
-    return;
+    if (written != 1 || !flushed) {
+      emit error_happened(m_serial_port->errorString());
+      change_state(CC_STOPPED);
+      return;
+    }
   }
+}
+////////////////////////////////////////////////////////////////////////////
 
+void CChronometerController::start() {
+  dev_start_countdown();
   play_start_sound();
 }
 //////////////////////////////////////////////////////////////
+
+void CChronometerController::dev_btn_start_enable() {
+  if (m_serial_port) {
+    static uint8_t cmd[1] = {BCMD_BTN_START_ENABLE};
+    qint64 written = m_serial_port->write((char*)cmd, 1);
+    bool flushed = m_serial_port->flush();
+
+    if (written != 1 || !flushed) {
+      emit error_happened(m_serial_port->errorString());
+    }
+  }
+}
+////////////////////////////////////////////////////////////////////////////
 
 void CChronometerController::stop_all() {
   change_state(CC_STOPPED);
@@ -54,14 +72,7 @@ void CChronometerController::stop_all() {
   m_time_stop = std::chrono::high_resolution_clock::now();
   std::chrono::nanoseconds diff = m_time_stop - m_time_start;
   m_current_ms = diff.count() / 1000000;
-
-  static uint8_t cmd[1] = {BCMD_BTN_START_ENABLE};
-  qint64 written = m_serial_port->write((char*)cmd, 1);
-  bool flushed = m_serial_port->flush();
-
-  if (written != 1 || !flushed) {
-    emit error_happened(m_serial_port->errorString());
-  }
+  dev_btn_start_enable();
 }
 //////////////////////////////////////////////////////////////
 
@@ -164,17 +175,23 @@ void CChronometerController::handle_rx(uint8_t rx) {
 }
 //////////////////////////////////////////////////////////////
 
-void CChronometerController::start_timer() {
-  static uint8_t restart_cmd[1] = {BCMD_INIT_STATE};
-  qint64 written = m_serial_port->write((char*)restart_cmd, 1);
-  bool flushed = m_serial_port->flush();
+void CChronometerController::dev_init_state() {
+  if (m_serial_port) {
+    static uint8_t restart_cmd[1] = {BCMD_INIT_STATE};
+    qint64 written = m_serial_port->write((char*)restart_cmd, 1);
+    bool flushed = m_serial_port->flush();
 
-  if (written != 1 || !flushed) {
-    emit error_happened(m_serial_port->errorString());
-    change_state(CC_STOPPED);
-    return;
+    if (written != 1 || !flushed) {
+      emit error_happened(m_serial_port->errorString());
+      change_state(CC_STOPPED);
+      return;
+    }
   }
+}
+////////////////////////////////////////////////////////////////////////////
 
+void CChronometerController::start_timer() {
+  dev_init_state();
   m_time0_ms = m_time1_ms = m_current_ms = 0;
   m_time0_stopped = m_time1_stopped = false;
   m_time_start = std::chrono::high_resolution_clock::now();

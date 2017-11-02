@@ -63,6 +63,10 @@ private:
 
   void play_start_sound();
 
+  void dev_btn_start_enable();
+
+  void dev_init_state();
+  void dev_start_countdown();
 public:
   static const int FALL_TIME = 0;
 

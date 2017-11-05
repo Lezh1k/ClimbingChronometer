@@ -2,6 +2,7 @@
 #include "MainWindow.h"
 #include "ChronometerController.h"
 #include "commands_consts.h"
+#include "AtTinySerial.h"
 
 #include <QTime>
 #include <QTimer>
@@ -20,16 +21,18 @@
 #include <QThread>
 #include <QMediaPlayer>
 #include <assert.h>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   ui(new Ui::MainWindow),
   m_chronometer_controller(nullptr),
+  m_attiny_serial(nullptr),
   m_refresh_timer(nullptr),
   m_model_ports(nullptr) {
 
   ui->setupUi(this);
-  m_chronometer_controller = new CChronometerController;
+
   m_refresh_timer = new QTimer(this);
   m_refresh_timer->setInterval(10);
   ui->lbl_error->setVisible(true);
@@ -44,23 +47,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(m_refresh_timer, &QTimer::timeout,
           this, &MainWindow::refresh_timer_timeout);
-
   connect(ui->btn_start_stop, &QPushButton::released,
           this, &MainWindow::btn_start_stop_released);
-
   connect(ui->cb_serial_ports, (void(QComboBox::*)(int)) &QComboBox::currentIndexChanged,
           this, &MainWindow::cb_serial_ports_index_changed);
-
-  connect(m_chronometer_controller, &CChronometerController::state_changed,
-          this, &MainWindow::chronometer_controller_state_changed);
-  connect(m_chronometer_controller, &CChronometerController::error_happened,
-          this, &MainWindow::chronometer_controller_error_happened);
-
   connect(ui->btn_fall1, &QPushButton::released,
           this, &MainWindow::btn_fall0_released);
   connect(ui->btn_fall2, &QPushButton::released,
           this, &MainWindow::btn_fall1_released);
-
   connect(ui->btn_refresh_com, &QPushButton::released,
           this, &MainWindow::btn_refresh_com_released);
 
@@ -72,15 +66,44 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ti, &QTimer::timeout, ti, &QTimer::deleteLater);
   ti->setSingleShot(true);
   ti->start();
-
-  if (QSerialPortInfo::availablePorts().size() > 0)
-    cb_serial_ports_index_changed(0);
+  m_attiny_serial = new CAtTinySerial;
+  init_chronometer();
 }
 
 MainWindow::~MainWindow() {
   if (m_chronometer_controller) delete m_chronometer_controller;
+  if (m_attiny_serial) delete m_attiny_serial;
   if (m_model_ports) delete m_model_ports;
   delete ui;
+}
+//////////////////////////////////////////////////////////////////////////
+
+void MainWindow::init_chronometer() {
+  if (m_chronometer_controller) delete m_chronometer_controller;
+  m_chronometer_controller = new CChronometerController;
+
+  connect(m_chronometer_controller, &CChronometerController::state_changed,
+          this, &MainWindow::chronometer_controller_state_changed);
+  connect(m_chronometer_controller, &CChronometerController::error_happened,
+          this, &MainWindow::chronometer_controller_error_happened);
+  connect(m_attiny_serial, &CAtTinySerial::on_command_received,
+          m_chronometer_controller, &CChronometerController::attiny_serial_cmd_received);
+  connect(m_chronometer_controller, &CChronometerController::dev_btn_start_enable,
+          m_attiny_serial, &CAtTinySerial::dev_btn_start_enable);
+  connect(m_chronometer_controller, &CChronometerController::dev_init_state,
+          m_attiny_serial, &CAtTinySerial::dev_init_state);
+  connect(m_chronometer_controller, &CChronometerController::dev_start_countdown,
+          m_attiny_serial, &CAtTinySerial::dev_start_countdown);
+
+  connect(this, &MainWindow::cc_stop,
+          m_chronometer_controller, &CChronometerController::stop_all);
+  connect(this, &MainWindow::cc_fall0,
+          m_chronometer_controller, &CChronometerController::fall0);
+  connect(this, &MainWindow::cc_fall1,
+          m_chronometer_controller, &CChronometerController::fall1);
+
+  if (QSerialPortInfo::availablePorts().size() > 0)
+    cb_serial_ports_index_changed(0);
 }
 //////////////////////////////////////////////////////////////////////////
 
@@ -101,11 +124,20 @@ MainWindow::btn_refresh_com_released() {
 void
 MainWindow::btn_start_stop_released() {
   if (!m_chronometer_controller->is_started()) {
-    m_chronometer_controller->start();
     ui->le_time1->setText("00.000");
     ui->le_time2->setText("00.000");
+    emit started_new_round();
+
+    init_chronometer();
+    QThread *th = new QThread;
+    connect(this, &MainWindow::started_new_round, th, &QThread::quit);
+    connect(th, &QThread::started, m_chronometer_controller, &CChronometerController::start);
+    connect(th, &QThread::finished, th, &QThread::deleteLater);
+    m_chronometer_controller->moveToThread(th);
+    th->start();
   } else {
-    m_chronometer_controller->stop_all();    
+    emit cc_stop();
+    refresh_timer_timeout();
   }
 }
 //////////////////////////////////////////////////////////////
@@ -113,8 +145,8 @@ MainWindow::btn_start_stop_released() {
 void
 MainWindow::refresh_timer_timeout() {
   static const QString tf = "ss.zzz";  
-  int32_t ms[2] = {m_chronometer_controller->time0_ms(),
-                   m_chronometer_controller->time1_ms()};
+  int32_t ms[2] = {m_chronometer_controller->time0_ns(),
+                   m_chronometer_controller->time1_ns()};
   QLineEdit* le[2] = {ui->le_time1, ui->le_time2};
 
   for (int i = 0; i < 2; ++i) {
@@ -131,7 +163,7 @@ MainWindow::cb_serial_ports_index_changed(int ix) {
   ui->lbl_error->setVisible(false);
   QList<QSerialPortInfo> lst_ports = QSerialPortInfo::availablePorts();
   if (lst_ports.size() > ix && ix >= 0) {
-    m_chronometer_controller->set_serial_port(lst_ports.at(ix), err);
+    m_attiny_serial->set_serial_port(lst_ports.at(ix), err);
     ui->lbl_error->setVisible(true);
     ui->lbl_error->setText(err);
   }
@@ -195,6 +227,8 @@ MainWindow::adjust_font_for_time_lines() {
   QLineEdit* les[] = {ui->le_time1, ui->le_time2};
   adjust_font_size_for_same_components(les, 2);
 }
+//////////////////////////////////////////////////////////////////////////
+
 
 void
 MainWindow::resizeEvent(QResizeEvent *event) {

@@ -29,13 +29,15 @@ SOURCES +=  src/main.cpp\
             src/MainWindow.cpp \
             src/ChronometerController.cpp \
     src/Competition.cpp \
-    src/Commons.cpp
+    src/Commons.cpp \
+    src/AtTinySerial.cpp
 
 HEADERS  += include/MainWindow.h \
             include/ChronometerController.h \
             include/Commons.h \
             include/Competition.h \
-    include/Athlete.h
+    include/Athlete.h \
+    include/AtTinySerial.h
 
 FORMS    += MainWindow.ui
 

@@ -7,7 +7,9 @@
 class QTimer;
 class QSerialPort;
 class QSerialPortInfo;
+
 class QMediaPlayer;
+class QMediaPlaylist;
 
 enum state_t {
   CC_RUNNING = 1,
@@ -20,10 +22,10 @@ class CStartSoundPlayer : public QObject {
   Q_OBJECT
 private:
   QTimer* m_timer;
-  QMediaPlayer* m_start_player;
+  QMediaPlayer *m_player;
   int8_t m_signals_count;
 public:
-  CStartSoundPlayer(QObject* parent = nullptr);
+  CStartSoundPlayer(QObject *parent, QMediaPlaylist *plist);
   virtual ~CStartSoundPlayer();
 
   void abort();
@@ -42,62 +44,59 @@ signals:
 class CChronometerController : public QObject {
   Q_OBJECT
 private:  
-  state_t   m_state;
-  int32_t   m_current_ms;
-  QTimer *  m_timer;
+  state_t m_state;
+  int32_t m_current_ns;
+  QTimer *m_timer;
 
-  int32_t  m_time0_ms;
-  int32_t  m_time1_ms;
+  int32_t m_time0_ns;
+  int32_t m_time1_ns;
   bool m_time0_stopped;
   bool m_time1_stopped;
 
   typedef std::chrono::system_clock controller_clock;
   controller_clock::time_point m_time_start;
-  controller_clock::time_point m_time_stop;
-  QSerialPort* m_serial_port;
+  controller_clock::time_point m_time_stop;  
 
   void change_state(state_t new_state);
-
   void stop_time0();
   void stop_time1();
-  void handle_rx(uint8_t rx);  
+  void handle_rx(uint8_t rx);
+  void play_start_sound();  
 
-  void play_start_sound();
+  void platform0_pressed(){/*todo implement*/}
+  void platform1_pressed(){/*todo implement*/}
 
-  void dev_btn_start_enable();
-
-  void dev_init_state();
-  void dev_start_countdown();
 public:
   static const int FALL_TIME = 0;
-
   CChronometerController(QObject* parent = nullptr);
   virtual ~CChronometerController();
 
+  int32_t time0_ns() const {return m_time0_ns;}
+  int32_t time1_ns() const {return m_time1_ns;}
+  bool is_started() const {return m_state == CC_RUNNING || m_state == CC_PLAYING_SOUND;}  
+
+public slots:
+
+  void attiny_serial_cmd_received(QByteArray arr);
+
   void start();
   void stop_all();
-
   void fall0();
   void fall1();
-
-  void platform0_pressed();
-  void platform1_pressed();
-
-  int32_t time0_ms() const {return m_time0_ms;}
-  int32_t time1_ms() const {return m_time1_ms;}
-  int32_t current_ms() const {return m_current_ms;}
-
-  bool is_started() const {return m_state == CC_RUNNING || m_state == CC_PLAYING_SOUND;}
-  bool set_serial_port(const QSerialPortInfo& port_info, QString &err);
 
 private slots:
   void start_timer();
   void ms_timer_timeout();
-  void serial_port_ready_read();
 
 signals:
   void state_changed(int state);
   void error_happened(QString err);
+
+  void dev_btn_start_enable();
+  void dev_init_state();
+  void dev_start_countdown();
+
+  void timer_stoped();
 };
 
 #endif // CHRONOMETERCONTROLLER_H

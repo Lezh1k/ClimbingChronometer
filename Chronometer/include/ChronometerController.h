@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <chrono>
+#include <QMediaPlayer>
+
 
 class QTimer;
 class QSerialPort;
@@ -19,30 +21,6 @@ enum state_t {
   CC_PLAYING_SOUND = 3
 };
 
-
-class CStartSoundPlayer : public QObject {
-  Q_OBJECT
-private:
-  QTimer* m_timer;
-  QMediaPlayer *m_player;
-  int8_t m_signals_count;
-public:
-  CStartSoundPlayer(QObject *parent, QMediaPlaylist *plist);
-  virtual ~CStartSoundPlayer();
-
-  void abort();
-
-private slots:
-  void timer_timeout();
-public slots:
-  void play();
-
-signals:
-  void start_signal();
-  void finished();
-};
-//////////////////////////////////////////////////////////////
-
 typedef std::chrono::system_clock controller_clock;
 class CChronometerController : public QObject {
   Q_OBJECT
@@ -56,11 +34,14 @@ private:
   bool m_time1_stopped;
   CAtTinySerial *m_attiny_serial;
 
+  QMediaPlayer *m_player;
+  QMediaPlaylist *m_plist;
+  bool m_resource_loaded;
+
   void change_state(state_t new_state);
   void stop_time0();
   void stop_time1();
-  void handle_rx(uint8_t rx);
-  void play_start_sound();  
+  void handle_rx(uint8_t rx);   
 
   void platform0_pressed(){/*todo implement*/}
   void platform1_pressed(){/*todo implement*/}
@@ -83,10 +64,11 @@ public:
   void stop_all();
   void fall0();
   void fall1();
+  void start_chronometer();
 
 private slots:
   void attiny_serial_cmd_received(QByteArray arr);
-  void start_chronometer();
+  void play_file_media_changed(QMediaPlayer::State newState);
 
 signals:
   void state_changed(int state);

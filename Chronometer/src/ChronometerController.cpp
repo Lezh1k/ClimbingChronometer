@@ -9,9 +9,11 @@
 #include <QMediaPlayer>
 #include <QMediaPlaylist>
 #include <QDebug>
+#include <thread>
 
 #include "ChronometerController.h"
 #include "commands_consts.h"
+#include "AtTinySerial.h"
 
 static const QString beep1 = "beep1.wav";
 static const QString beep2 = "beep2.wav";
@@ -52,21 +54,19 @@ static QString& init_plist() {
 }
 //////////////////////////////////////////////////////////////////////////
 
-CChronometerController::CChronometerController(QObject* parent)
+CChronometerController::CChronometerController(CAtTinySerial *attiny_serial,
+                                               QObject* parent)
     : QObject(parent),
       m_state(CC_STOPPED),
       m_current_ns(0),
-      m_timer(nullptr),
       m_time0_ns(0),
       m_time1_ns(0),
       m_time0_stopped(true),
-      m_time1_stopped(true) {
-  m_timer = new QTimer(this);
-  m_timer->setInterval(10);
-  connect(m_timer, &QTimer::timeout, this,
-          &CChronometerController::ms_timer_timeout);
-  connect(this, &CChronometerController::timer_stoped,
-          m_timer, &QTimer::stop);
+      m_time1_stopped(true),
+      m_attiny_serial(attiny_serial) {
+
+  connect(m_attiny_serial, &CAtTinySerial::on_command_received,
+          this, &CChronometerController::attiny_serial_cmd_received);
 
   QString init_res = init_plist();
   if (init_res != "") {
@@ -75,8 +75,7 @@ CChronometerController::CChronometerController(QObject* parent)
 }
 //////////////////////////////////////////////////////////////////////////
 
-CChronometerController::~CChronometerController() {  
-}
+CChronometerController::~CChronometerController() {}
 //////////////////////////////////////////////////////////////////////////
 
 void
@@ -86,20 +85,15 @@ CChronometerController::attiny_serial_cmd_received(QByteArray arr) {
 //////////////////////////////////////////////////////////////
 
 void CChronometerController::start() {
-
-  emit dev_start_countdown();
+  m_attiny_serial->dev_start_countdown();
   play_start_sound();
 }
 //////////////////////////////////////////////////////////////
 
 void CChronometerController::stop_all() {
-  change_state(CC_STOPPED);
-  emit timer_stoped();
+  change_state(CC_STOPPED);  
   m_time0_stopped = m_time1_stopped = true;
-  m_time_stop = controller_clock::now();
-  std::chrono::nanoseconds diff = m_time_stop - m_time_start;
-  m_current_ns = diff.count() / 1000000;
-  emit dev_btn_start_enable();
+  m_attiny_serial->dev_btn_start_enable();
 }
 //////////////////////////////////////////////////////////////
 
@@ -107,7 +101,8 @@ void CChronometerController::fall0() {
   if (m_time0_stopped) return;
   m_time0_ns = FALL_TIME;
   m_time0_stopped = true;
-  if (m_time0_stopped && m_time1_stopped) stop_all();
+  if (m_time0_stopped && m_time1_stopped)
+    stop_all();
 }
 //////////////////////////////////////////////////////////////
 
@@ -115,7 +110,8 @@ void CChronometerController::fall1() {
   if (m_time1_stopped) return;
   m_time1_ns = FALL_TIME;
   m_time1_stopped = true;
-  if (m_time0_stopped && m_time1_stopped) stop_all();
+  if (m_time0_stopped && m_time1_stopped)
+    stop_all();
 }
 //////////////////////////////////////////////////////////////
 
@@ -127,16 +123,16 @@ void CChronometerController::change_state(state_t new_state) {
 void CChronometerController::stop_time0() {
   if (m_time0_stopped) return;
   m_time0_stopped = true;
-  m_time0_ns = (m_time_stop - m_time_start).count() / 1000000;
-  if (m_time0_stopped && m_time1_stopped) stop_all();
+  if (m_time0_stopped && m_time1_stopped)
+    stop_all();
 }
 //////////////////////////////////////////////////////////////
 
 void CChronometerController::stop_time1() {
   if (m_time1_stopped) return;
   m_time1_stopped = true;
-  m_time1_ns = (m_time_stop - m_time_start).count() / 1000000;
-  if (m_time0_stopped && m_time1_stopped) stop_all();
+  if (m_time0_stopped && m_time1_stopped)
+    stop_all();
 }
 //////////////////////////////////////////////////////////////
 
@@ -196,22 +192,42 @@ void CChronometerController::handle_rx(uint8_t rx) {
 }
 //////////////////////////////////////////////////////////////
 
-void CChronometerController::start_timer() {
-  dev_init_state();
-  m_time0_ns = m_time1_ns = m_current_ns = 0;
-  m_time0_stopped = m_time1_stopped = false;
-  m_time_start = controller_clock::now();
-  m_timer->start();
-  change_state(CC_RUNNING);
-}
-//////////////////////////////////////////////////////////////
+struct chronometer_t {
+  uint64_t *current_ns;
+  uint64_t *time0_ns;
+  uint64_t *time1_ns;
+  bool *time0_stopped;
+  bool *time1_stopped;
+  controller_clock::time_point time_start;
+  controller_clock::time_point time_stop;
+};
 
-void CChronometerController::ms_timer_timeout() {
-  m_time_stop = controller_clock::now();
-  std::chrono::nanoseconds diff = m_time_stop - m_time_start;
-  m_current_ns = diff.count() / 1000000;
-  if (!m_time0_stopped) m_time0_ns = m_current_ns;
-  if (!m_time1_stopped) m_time1_ns = m_current_ns;
+void chronometer_function(chronometer_t arg) {
+  while (!(*arg.time0_stopped && *arg.time1_stopped)) {
+    arg.time_stop = controller_clock::now();
+    std::chrono::nanoseconds diff = arg.time_stop - arg.time_start;
+    *arg.current_ns = diff.count() / 1000000;
+    if (!*arg.time0_stopped) *arg.time0_ns = *arg.current_ns;
+    if (!*arg.time1_stopped) *arg.time1_ns = *arg.current_ns;
+    std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+  }
+}
+//////////////////////////////////////////////////////////////////////////
+
+void CChronometerController::start_chronometer() {
+  m_attiny_serial->dev_init_state();
+  chronometer_t ct;
+  ct.current_ns = &m_current_ns;
+  ct.time0_ns = &m_time0_ns;
+  ct.time1_ns = &m_time1_ns;
+  ct.time0_stopped = &m_time0_stopped;
+  ct.time1_stopped = &m_time1_stopped;
+  *ct.current_ns = *ct.time0_ns = *ct.time1_ns = 0;
+  *ct.time0_stopped = *ct.time1_stopped = false;
+  ct.time_start = ct.time_stop = controller_clock::now();
+  std::thread th(chronometer_function, ct);
+  th.detach();
+  change_state(CC_RUNNING);
 }
 //////////////////////////////////////////////////////////////
 
@@ -227,7 +243,7 @@ void CChronometerController::play_start_sound() {
 
   connect(th, &QThread::started, player, &CStartSoundPlayer::play);
   connect(player, &CStartSoundPlayer::start_signal, this,
-          &CChronometerController::start_timer);
+          &CChronometerController::start_chronometer);
 
   connect(player, &CStartSoundPlayer::finished, th, &QThread::quit);
   connect(th, &QThread::finished, th, &QThread::deleteLater);

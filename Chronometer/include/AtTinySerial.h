@@ -16,12 +16,6 @@ private:
 private slots:
   void serial_port_ready_read();
 
-public slots:
-  void dev_btn_start_enable();
-  void dev_init_state();
-  void dev_start_countdown();
-
-
 signals:
   void on_command_received(QByteArray);
   void error_happened(QString);
@@ -30,6 +24,10 @@ public:
   explicit CAtTinySerial(QObject *parent = nullptr);
   virtual ~CAtTinySerial();
   bool set_serial_port(const QSerialPortInfo &port_info, QString &err);
+
+  void dev_btn_start_enable();
+  void dev_init_state();
+  void dev_start_countdown();
 };
 
 #endif // ATTINYSERIAL_H

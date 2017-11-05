@@ -24,12 +24,6 @@ public:
   explicit MainWindow(QWidget *parent = 0);
   virtual ~MainWindow();
 
-signals:
-  void started_new_round();
-  void cc_fall0();
-  void cc_fall1();
-  void cc_stop();
-
 private:
   Ui::MainWindow *ui;
   CChronometerController *m_chronometer_controller;
@@ -38,8 +32,8 @@ private:
   QStandardItemModel *m_model_ports;
 
   void adjust_font_size_for_same_components(QLineEdit **le, size_t count);
-  void adjust_font_for_time_lines();
-  void init_chronometer();
+  void adjust_font_for_time_lines();  
+  void init_and_adjust_font_for_time_controls();
 
 private slots:
   void btn_refresh_com_released();

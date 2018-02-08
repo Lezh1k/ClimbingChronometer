@@ -29,7 +29,7 @@ INCLUDES = -Iinclude -I$(AVR_TOOLCHAIN_PATH)/avr/include
 
 override CFLAGS = $(INCLUDES) $(MMCU) $(OPTIMIZE) $(DEFS) -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -std=gnu99 \
   -Wl,--start-group  -Wl,--end-group -Wl,--gc-sections
-
+#todo use linker flag for memory analize
 override LDFLAGS = -Wl,-Map,$(BIN_DIR)/$(PRG).map $(MMCU)
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
